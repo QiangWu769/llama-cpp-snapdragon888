@@ -29,6 +29,7 @@ if(HEXAGON_ARCH STREQUAL "v68")
     set(HTP_HMX_DEFAULT OFF)
 endif()
 option(HTP_USE_HMX "Build FP16 HMX kernels (legacy ISA on v68)" ${HTP_HMX_DEFAULT})
+option(HTP_F16_M_AWARE_VTCM "Use shape-aware VTCM areas for v68 FP16 HMX matmul" OFF)
 
 if(${OS_TYPE} MATCHES "HLOS")
     # HLOS dynamic binary
@@ -92,7 +93,10 @@ else()
         target_compile_options(htp_ops_skel PRIVATE -mhmx)
         if(HEXAGON_ARCH STREQUAL "v68")
             target_compile_definitions(htp_ops_skel PRIVATE HTP_HMX_V68=1)
+            target_compile_definitions(htp_ops_skel PRIVATE
+                HTP_F16_M_AWARE_VTCM=$<BOOL:${HTP_F16_M_AWARE_VTCM}>)
             message(STATUS "HTP backend: v68 legacy FP16 HMX kernels")
+            message(STATUS "v68 FP16 shape-aware VTCM: ${HTP_F16_M_AWARE_VTCM}")
         endif()
         target_sources(htp_ops_skel PRIVATE
             src/dsp/hmx_mgr.c src/dsp/vtcm_mgr.cc

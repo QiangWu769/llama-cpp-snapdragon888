@@ -1,5 +1,6 @@
 // Real FastRPC tests: results must be produced by the DSP, never a host fallback.
 #include <math.h>
+#include <inttypes.h>
 #include <remote.h>
 #include <rpcmem.h>
 #include <stdint.h>
@@ -21,6 +22,7 @@ static int arena_fd;
 static size_t cursor;
 static int hmx_reference;
 static int hmx_k_chunk;
+static int vtcm_layout_suite;
 static int tests_run;
 static double now_seconds(void) {
     struct timespec t;
@@ -37,7 +39,7 @@ static struct RpcmemBufAddr addr(int offset) {
     struct RpcmemBufAddr a = {arena_fd, offset};
     return a;
 }
-static int run_op(unsigned int op, const void *params, size_t size) {
+static int run_op_with_expected_status(unsigned int op, const void *params, size_t size, int expected_status) {
     memset(arena, 0, 4096);
     struct MessageHeader *msg = (void *)arena;
     msg->n_reqs = 1;
@@ -61,8 +63,26 @@ static int run_op(unsigned int op, const void *params, size_t size) {
         usleep(100);
     }
     __sync_synchronize();
-    if (req->state) fprintf(stderr, "FAIL: DSP op %u returned %d\n", op, req->state);
+    if (req->state != expected_status)
+        fprintf(stderr, "FAIL: DSP op %u returned %d, expected %d\n", op, req->state, expected_status);
     return req->state;
+}
+static int run_op(unsigned int op, const void *params, size_t size) {
+    return run_op_with_expected_status(op,params,size,0);
+}
+/* Canonical low-byte-first hashing of float bits enables exact A/B comparison
+ * without writing a large fixture dump. This is a test digest, not a signature. */
+static uint64_t output_digest(const float *values, size_t count) {
+    uint64_t digest=UINT64_C(14695981039346656037);
+    for(size_t i=0;i<count;++i) {
+        uint32_t bits;
+        memcpy(&bits,values+i,sizeof(bits));
+        for(int byte=0;byte<4;++byte) {
+            digest^=(bits>>(8*byte))&255u;
+            digest*=UINT64_C(1099511628211);
+        }
+    }
+    return digest;
 }
 static int check_tolerance(const char *name, const float *actual, const float *ref,
                            int count, float atol, float rtol) {
@@ -155,10 +175,38 @@ static int test_matmul_typed(enum ggml_type type, int M, int K, int N) {
            name,reference_ms,rpc_ms,hmx_k_chunk);
     if(full) printf(" expected_fp16_conversion_max_abs=%g",conversion_max);
     putchar('\n');
+    if(vtcm_layout_suite)
+        printf("FIXTURE %s seed=%" PRIu32 " output_fnv1a64=%016" PRIx64 "\n",
+               name,(uint32_t)(M+17*K+N),output_digest(out,(size_t)M*N));
     free(ref); free(full); return fail != 0;
 }
 static int test_matmul(int M, int K, int N) {
     return test_matmul_typed(GGML_TYPE_F16,M,K,N);
+}
+static int test_matmul_invalid(int kind) {
+    cursor=4096;
+    ++tests_run;
+    int ao=alloc_offset(32*sizeof(float));
+    int wo=alloc_offset(32*32*sizeof(__fp16));
+    int guard=alloc_offset(32*sizeof(float)+2*OUTPUT_GUARD);
+    int oo=guard+OUTPUT_GUARD;
+    memset(arena+ao,0,32*sizeof(float));
+    memset(arena+wo,0,32*32*sizeof(__fp16));
+    memset(arena+guard,0xa5,32*sizeof(float)+2*OUTPUT_GUARD);
+    struct MatMulParams p={addr(oo),addr(ao),addr(wo),1,32,32};
+    static const char *names[]={"M-zero","K-not-tile-aligned","N-not-tile-aligned","activation-not-HVX-aligned"};
+    if(kind==0) p.m=0;
+    else if(kind==1) p.k=31;
+    else if(kind==2) p.n=31;
+    else p.activation.offset+=sizeof(float);
+    int status=run_op_with_expected_status(HTP_OPS_MAT_MUL_PERMUTED_W16A32,&p,sizeof(p),-1);
+    int failed=status!=-1;
+    for(size_t i=0;i<32*sizeof(float)+2*OUTPUT_GUARD;++i) {
+        if(arena[guard+i]!=0xa5) {failed=1;break;}
+    }
+    printf("%s F16-INVALID case=%s status=%d expected=-1 output_unchanged=%d\n",
+           failed?"FAIL":"PASS",names[kind],status,!failed);
+    return failed;
 }
 static int test_attention_case(int Q, int KV, int H, int KH, int D,
                                int mask_kind, int half_path) {
@@ -232,25 +280,28 @@ int main(int argc, char **argv) {
         if(!strcmp(argv[i],"--hmx")) hmx_reference=1;
         else if(!strcmp(argv[i],"--full")) full=1;
         else if(!strcmp(argv[i],"--pipeline")) {pipeline=1;hmx_reference=1;}
+        else if(!strcmp(argv[i],"--vtcm-layout")) {vtcm_layout_suite=1;hmx_reference=1;}
         else if(!strcmp(argv[i],"--hmx-attention")) attention=1;
         else {
-            fprintf(stderr,"usage: %s [--hmx [--full] | --pipeline | --hmx-attention]\n"
+            fprintf(stderr,"usage: %s [--hmx [--full] | --pipeline | --hmx-attention | --vtcm-layout]\n"
                     "default: original HVX small matrices and attention, FP32 reference\n"
                     "--hmx: F16/Q8/IQ4, half-boundary reference, small and model-size matrices\n"
                     "--full: all M={1,5,32,33} x K={896,4864}, N=896\n"
                     "--pipeline: Q8/IQ4 four-stage and K-chunked output-stationary tests\n"
+                    "--vtcm-layout: F16 Qwen shapes at 32-row boundaries, partial N, invalid inputs\n"
                     "--hmx-attention: GQA, query/KV tails, null/causal/all-masked masks\n",argv[0]);
             return !strcmp(argv[i],"--help") ? 0 : 2;
         }
     }
     if(full && !hmx_reference) {fprintf(stderr,"--full requires --hmx\n");return 2;}
-    if((attention && (hmx_reference || full)) || (pipeline && full)) {
+    if((attention && (hmx_reference || full)) || (pipeline && full) ||
+       (vtcm_layout_suite && (attention || pipeline || full))) {
         fprintf(stderr,"select a single test suite\n");return 2;
     }
-    setbuf(stdout,NULL); alarm(hmx_reference?300:90);
+    setbuf(stdout,NULL); alarm(vtcm_layout_suite?600:hmx_reference?300:90);
     printf("V68_RPC_TEST reference=%s suite=%s (verify DSP dispatch logs separately)\n",
            hmx_reference?"half-input/half-output":attention?"full-softmax, HMX tolerance":"FP32",
-           attention?"attention":pipeline?"pipeline":full?"full":"default");
+           vtcm_layout_suite?"vtcm-layout":attention?"attention":pipeline?"pipeline":full?"full":"default");
     if(open_dsp_session(CDSP_DOMAIN_ID,1)) return 2;
     remote_handle64 h=get_global_handle();
     int err=htp_ops_init_backend(h);
@@ -262,7 +313,21 @@ int main(int argc, char **argv) {
     if(htp_ops_create_channel(h,arena_fd,4096)) return 2;
     cursor=4096;
     int failures=0;
-    if(attention) {
+    if(vtcm_layout_suite) {
+        const int ms[]={1,31,32,33,64,65,128,129};
+        const int shapes[][2]={{896,896},{896,4864},{4864,896}};
+        for(size_t mi=0;mi<sizeof(ms)/sizeof(ms[0]);++mi)
+            for(size_t si=0;si<sizeof(shapes)/sizeof(shapes[0]);++si)
+                failures+=test_matmul(ms[mi],shapes[si][0],shapes[si][1]);
+        /* At the validated usable size these force partial final N chunks:
+         * K896/N5216 tails both layouts; K4864/N928 tails the optimized one. */
+        const int tail_ms[]={1,33};
+        for(size_t mi=0;mi<sizeof(tail_ms)/sizeof(tail_ms[0]);++mi) {
+            failures+=test_matmul(tail_ms[mi],896,5216);
+            failures+=test_matmul(tail_ms[mi],4864,928);
+        }
+        for(int kind=0;kind<4;++kind) failures+=test_matmul_invalid(kind);
+    } else if(attention) {
         const int shapes[][5]={{1,65,14,2,64},{5,67,14,2,64},{33,33,2,2,64}};
         for(int s=0;s<3;++s) for(int mask=0;mask<3;++mask)
             failures+=test_attention_case(shapes[s][0],shapes[s][1],shapes[s][2],

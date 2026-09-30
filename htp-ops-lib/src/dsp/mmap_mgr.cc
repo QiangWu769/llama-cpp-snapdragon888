@@ -30,7 +30,7 @@ int mmap_manager_put_map(int fd) {
   auto it = mmap_manager::mapping.find(fd);
   if (it != mmap_manager::mapping.end()) {
     int ret = HAP_mmap_put(it->first);
-    mmap_manager::mapping.erase(it);
+    if (ret == 0) mmap_manager::mapping.erase(it);
     return ret;
   }
   return 0;

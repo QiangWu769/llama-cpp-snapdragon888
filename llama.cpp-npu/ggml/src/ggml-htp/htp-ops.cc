@@ -1,4 +1,5 @@
 #include "htp-ops.h"
+#include "ggml-htp-op-support.h"
 
 #include <dlfcn.h>
 #include <unistd.h>
@@ -14,8 +15,10 @@
 #include <vector>
 
 #include "ggml-backend-impl.h"
+#include "dsprpc_interface.h"
 #include "ggml-htp-impl.h"
 #include "ggml-htp.h"
+#include "ggml-htp-output-pack.h"
 #include "ggml.h"
 
 ////// Special headers intended for CPU-NPU communication. Keep them in sync with ops backend.
@@ -79,60 +82,12 @@ bool rpcmem_tensor(const ggml_tensor * tensor) {
     return tensor && tensor->buffer && ggml_backend_buft_is_rpcmem(tensor->buffer->buft);
 }
 
-bool interleaved_attention_tensor(const ggml_tensor * tensor, size_t element_size) {
-    return tensor->ne[3] == 1 && tensor->nb[0] == element_size &&
-           tensor->nb[1] == element_size * tensor->ne[0] * tensor->ne[2] &&
-           tensor->nb[2] == element_size * tensor->ne[0];
-}
-
 }  // namespace
 
 extern "C" {
 
-bool htp_ops_has_permuted_weight(const struct ggml_tensor * dst) {
-    if (dst->op != GGML_OP_MUL_MAT || !dst->src[0]) {
-        return false;
-    }
-    // This is the converter's layout contract, not a generic GGUF type property.
-    // In particular, output/token embeddings remain in ordinary row-major layout.
-    const char * name = dst->src[0]->name;
-    if (strncmp(name, "blk.", 4) != 0) {
-        // The GGML scheduler names tensor copies "<backend>#<original>#<copy>".
-        const char * original = strstr(name, "#blk.");
-        if (!original) {
-            return false;
-        }
-        name = original + 1;
-    }
-    const char * suffix = name + 4;
-    if (*suffix < '0' || *suffix > '9') {
-        return false;
-    }
-    do {
-        ++suffix;
-    } while (*suffix >= '0' && *suffix <= '9');
-    static const char * const permuted_suffixes[] = {
-        ".attn_q.weight", ".attn_k.weight", ".attn_v.weight", ".attn_output.weight",
-        ".ffn_up.weight", ".ffn_down.weight", ".ffn_gate.weight",
-    };
-    for (const char * expected : permuted_suffixes) {
-        const size_t length = strlen(expected);
-        if (strncmp(suffix, expected, length) != 0) {
-            continue;
-        }
-        const char * end = suffix + length;
-        while (*end == '#') {
-            ++end;
-            if (*end < '0' || *end > '9') {
-                return false;
-            }
-            do {
-                ++end;
-            } while (*end >= '0' && *end <= '9');
-        }
-        return *end == '\0';
-    }
-    return false;
+bool htp_ops_has_permuted_weight(const struct ggml_tensor *dst) {
+    return ggml_htp_has_permuted_weight(dst);
 }
 
 bool htp_ops_support_op(const struct ggml_tensor * dst) {
@@ -157,89 +112,12 @@ bool htp_ops_support_op(const struct ggml_tensor * dst) {
             }
             return false;
         case GGML_OP_MUL_MAT:
-            {
-                auto * weight     = dst->src[0];
-                auto * activation = dst->src[1];
-
-                if (!htp_ops_has_permuted_weight(dst) || !rpcmem_tensor(weight) ||
-                    !rpcmem_tensor(activation) || !rpcmem_tensor(dst)) {
-                    return false;
-                }
-
-                size_t k = weight->ne[0];
-                size_t n = weight->ne[1];
-
-                bool shape_ok = k > 0 && n > 0 && k <= INT_MAX && n <= INT_MAX &&
-                                activation->ne[1] > 0 && activation->ne[1] <= INT_MAX &&
-                                k % 32 == 0 && n % 32 == 0 &&
-                                weight->ne[2] == 1 && weight->ne[3] == 1 &&
-                                ggml_nrows(dst) == dst->ne[1] && ggml_nrows(activation) == activation->ne[1] &&
-                                activation->ne[0] == weight->ne[0] && dst->ne[0] == weight->ne[1] &&
-                                dst->ne[1] == activation->ne[1] &&
-                                ggml_is_contiguous(weight) && ggml_is_contiguous(activation) && ggml_is_contiguous(dst);
-
-                // FP16 weight
-                if (dst->type == GGML_TYPE_F32 && weight->type == GGML_TYPE_F16 && activation->type == GGML_TYPE_F32) {
-                    return shape_ok;
-                }
-                // (repacked) Q4_0 weight
-                if (dst->type == GGML_TYPE_F32 && weight->type == GGML_TYPE_Q4_0 && activation->type == GGML_TYPE_F32) {
-                    return shape_ok;
-                }
-                // (repacked) Q8_0 weight
-                if (dst->type == GGML_TYPE_F32 && weight->type == GGML_TYPE_Q8_0 && activation->type == GGML_TYPE_F32) {
-                    return shape_ok;
-                }
-                // (repacked) IQ4_NL weight
-                if (dst->type == GGML_TYPE_F32 && weight->type == GGML_TYPE_IQ4_NL &&
-                    activation->type == GGML_TYPE_F32) {
-                    return shape_ok;
-                }
-                fprintf(stderr, "unsupported matmul: dst: %s weight: %s act: %s\n", ggml_type_name(dst->type),
-                        ggml_type_name(weight->type), ggml_type_name(activation->type));
-                return false;
-            }
+            return ggml_htp_op_layout_supported(dst) && rpcmem_tensor(dst->src[0]) &&
+                   rpcmem_tensor(dst->src[1]) && rpcmem_tensor(dst);
         case GGML_OP_FLASH_ATTN_EXT:
-            {
-                if (env_enabled("HTP_DISABLE_FLASH_ATTN")) {
-                    return false;
-                }
-                float scale         = *reinterpret_cast<const float *>(&dst->op_params[0]);
-                float max_bias      = *reinterpret_cast<const float *>(&dst->op_params[1]);
-                float logit_softcap = *reinterpret_cast<const float *>(&dst->op_params[2]);
-
-                auto * q    = dst->src[0];
-                auto * k    = dst->src[1];
-                auto * v    = dst->src[2];
-                auto * mask = dst->src[3];
-
-                if (!rpcmem_tensor(q) || !rpcmem_tensor(k) || !rpcmem_tensor(v) ||
-                    !rpcmem_tensor(mask) || !rpcmem_tensor(dst)) {
-                    return false;
-                }
-                const int64_t dim = q->ne[0];
-                if (dim <= 0 || dim > INT_MAX || q->ne[1] <= 0 || q->ne[1] > INT_MAX ||
-                    q->ne[2] <= 0 || q->ne[2] > INT_MAX || k->ne[1] <= 0 || k->ne[1] > INT_MAX ||
-                    k->ne[2] <= 0 || k->ne[2] > INT_MAX) {
-                    return false;
-                }
-                const float expected_scale = 1.0f / std::sqrt(static_cast<float>(dim));
-                const int64_t mask_stride = ((k->ne[1] + 63) / 64) * 64;
-                // The RPC ABI carries no strides or scale. Only accept its exact layout.
-                return dst->type == GGML_TYPE_F32 && q->type == GGML_TYPE_F32 && k->type == GGML_TYPE_F16 &&
-                       v->type == GGML_TYPE_F16 && mask->type == GGML_TYPE_F16 && max_bias == 0 && logit_softcap == 0 &&
-                       std::fabs(scale - expected_scale) <= 1e-6f * expected_scale &&
-                       k->ne[0] == dim && v->ne[0] == dim && v->ne[1] == k->ne[1] &&
-                       v->ne[2] == k->ne[2] && q->ne[2] % k->ne[2] == 0 &&
-                       interleaved_attention_tensor(q, sizeof(float)) &&
-                       interleaved_attention_tensor(k, sizeof(ggml_fp16_t)) &&
-                       interleaved_attention_tensor(v, sizeof(ggml_fp16_t)) &&
-                       dst->ne[0] == dim && dst->ne[1] == q->ne[2] && dst->ne[2] == q->ne[1] &&
-                       dst->ne[3] == 1 && ggml_is_contiguous(dst) &&
-                       mask->ne[0] >= k->ne[1] && mask->ne[1] >= q->ne[1] &&
-                       mask->ne[2] == 1 && mask->ne[3] == 1 && mask->nb[0] == sizeof(ggml_fp16_t) &&
-                       mask->nb[1] == mask_stride * sizeof(ggml_fp16_t);
-            }
+            return ggml_htp_op_layout_supported(dst) && rpcmem_tensor(dst->src[0]) &&
+                   rpcmem_tensor(dst->src[1]) && rpcmem_tensor(dst->src[2]) &&
+                   rpcmem_tensor(dst->src[3]) && rpcmem_tensor(dst);
         default:
             return false;
     }
@@ -516,7 +394,61 @@ int htp_ops_compute_op(struct ggml_compute_params * params, struct ggml_tensor *
         fprintf(stderr, "HTP DSP completed: opcode=%d count=%llu tensor=%s op=%s elapsed_us=%lld status=0\n",
                 op_index, static_cast<unsigned long long>(counts[op_index]), dst->name, ggml_op_name(dst->op),
                 static_cast<long long>(elapsed_us));
+        if (dst->op == GGML_OP_MUL_MAT) {
+            fprintf(stderr, "HTP matrix shape: tensor=%s M=%lld K=%lld N=%lld\n", dst->name,
+                    static_cast<long long>(ggml_nrows(dst->src[1])),
+                    static_cast<long long>(dst->src[0]->ne[0]),
+                    static_cast<long long>(dst->src[0]->ne[1]));
+        }
     }
     return 0;
+}
+
+void htp_ops_retire_and_free_rpcmem(void *base) {
+    std::lock_guard<std::mutex> lock(request_mutex);
+    auto *ctx = ggml_backend_htp_context::get_if_initialized();
+    RpcMemMapper::UnmapRequest mapping;
+    if (ctx && ctx->mapper.get_buffer_mapping(base, mapping)) {
+        auto [fd, address, size] = mapping;
+        GGML_UNUSED(address);
+        GGML_UNUSED(size);
+        auto *msg = static_cast<MessageHeader *>(ctx->ops_msg_chan);
+        // No operation is in flight while request_mutex is held. Replace its
+        // payload with a MAP-only job while the published state is zero.
+        auto *state = reinterpret_cast<volatile std::atomic<uint64_t> *>(msg);
+        state->store(0, std::memory_order_release);
+        std::memset(reinterpret_cast<uint8_t *>(msg) + sizeof(msg->state), 0,
+                    ggml_backend_htp_context::MAX_MSG_SIZE - sizeof(msg->state));
+        msg->n_reqs = 1;
+        msg->req_offsets[0] = message_header_size(msg);
+        msg->req_offsets[1] = msg->req_offsets[0] + sizeof(RequestHeader) + sizeof(RpcmemMapRequest) + sizeof(int32_t);
+        RequestHeader request { .state = INT32_MIN, .type = REQUEST_TYPE_RPCMEM_MAP };
+        RpcmemMapRequest payload { .n_puts = 1, .n_gets = 0 };
+        auto *cursor = reinterpret_cast<uint8_t *>(message_header_get_request_ptr(msg, 0));
+        write_buf(cursor, request);
+        write_buf(cursor, payload);
+        write_buf(cursor, static_cast<int32_t>(fd));
+        uint32_t sum = 1;
+        auto *words = reinterpret_cast<uint32_t *>(msg);
+        for (size_t i = 3; i < ggml_backend_htp_context::MAX_MSG_SIZE / 4; ++i) sum += words[i];
+        msg->checksum = -sum;
+        const auto started = std::chrono::steady_clock::now();
+        auto *ready = reinterpret_cast<volatile std::atomic<uint8_t> *>(&msg->state.v[0]);
+        auto *done = reinterpret_cast<volatile std::atomic<uint8_t> *>(&msg->state.v[1]);
+        ready->store(1, std::memory_order_release);
+        while (done->load(std::memory_order_acquire) == 0) {
+            if (std::chrono::steady_clock::now() - started >= std::chrono::milliseconds(op_timeout_ms())) {
+                GGML_ABORT("HTP buffer retirement timed out; mapped buffer retained");
+            }
+            usleep(1);
+        }
+        const int status = message_header_get_request_ptr(msg, 0)->state;
+        if (status != 0) {
+            GGML_ABORT("HTP buffer retirement: DSP HAP_mmap_put failed status=%d; buffer retained", status);
+        }
+        state->store(0, std::memory_order_release);
+        ctx->mapper.retire_buffer_mapping(base);
+    }
+    rpcmem_free(base);
 }
 }

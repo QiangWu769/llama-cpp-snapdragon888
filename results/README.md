@@ -106,7 +106,7 @@ uncertainty is not evidence of zero underlying uncertainty. The reference
 stores per-position scaled 16-bit log probabilities, not raw FP32 logits.
 This small comparison is not general model-quality or long-context validation.
 
-## Short end-to-end benchmark
+## Historical short end-to-end benchmark
 
 Recorded `llama-bench` settings were `-p 32 -n 8 -b 32 -ub 32 -t 4 -fa 1`,
 default warmup and `HTP_TRACE=0`. CPU and HMX use three repetitions each;
@@ -119,7 +119,7 @@ the slow retained HVX reference uses one.
 | HMX / F16 | 27.57 | 4.42 | [HMX F16](bench-hmx-f16-final.json) |
 | HMX / IQ4_NL + Q8_0 | 14.75 | 1.01 | [HMX quantized](bench-hmx-quant-final.json) |
 
-This HMX implementation is faster than the correctness-oriented HVX reference
+This historical HMX configuration is faster than the correctness-oriented HVX reference
 but **does not outperform the CPU F16 baseline**. These are whole-backend
 timings including ARM work, transport, conversion and dequantization. Runs
 were short, sequential and not thermally controlled; thread affinity and ARM
@@ -139,3 +139,19 @@ consume the same packed weights; the filename does not select the backend.
 These measurements cover this phone, firmware, model and tested shapes only.
 They do not establish compatibility with every Snapdragon 888 device, other
 models, long contexts or other Hexagon generations.
+
+## Optional utilization optimizations, 2026-09-30
+
+[Methods, changes and bounded numerical checks](../docs/UTILIZATION.md) describe
+the later opt-in scheduling, packed vocabulary projection and row-copy changes.
+The [retained evidence](UTILIZATION-20260930.json) includes all measured stages,
+the two excluded observations, binary/source hashes, API cleanup and coverage,
+and the failed distinct-prompt token-identity fixture with its logit diagnosis.
+The [selected figure](UTILIZATION-20260930.png) is also available as
+[PDF](UTILIZATION-20260930.pdf).
+
+These cases measure genuine M1/M32 library decode calls on the phone with
+matched controls. M32 aggregate throughput is not directly comparable with the
+historical single-stream CPU row above. SDK peak ratios and conditional
+active-MCPS means do not establish wall-time NPU occupancy. All optional backend
+controls remain disabled by default.

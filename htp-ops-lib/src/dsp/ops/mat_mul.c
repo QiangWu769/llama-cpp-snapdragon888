@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "dsp/dma_utils.h"
+#include "dsp/f16_vtcm_layout.h"
 #include "dsp/hmx_mgr.h"
 #include "dsp/hmx_utils.h"
 #include "dsp/hvx_convert.h"
@@ -21,6 +22,10 @@
 
 #ifndef HTP_V68_DEQUANT_SCALAR_REFERENCE
 #define HTP_V68_DEQUANT_SCALAR_REFERENCE 0
+#endif
+
+#ifndef HTP_F16_M_AWARE_VTCM
+#define HTP_F16_M_AWARE_VTCM 0
 #endif
 
 #if HTP_HMX_V68
@@ -942,15 +947,28 @@ int hmx_mat_mul_permuted_w16a32(float *restrict dst, const float *restrict activ
     return -1;
   }
 
-  const size_t weight_area_size     = WEIGHT_AREA_SIZE;
-  const size_t activation_area_size = ACTIVATION_AREA_SIZE;
-  const size_t output_area_size     = OUTPUT_AREA_SIZE;
-
   // VTCM layout: weight | activation | output | scales
   uint8_t *vtcm_ptr        = (uint8_t *) vtcm_manager_get_vtcm_base();
   if (!vtcm_ptr) {
     return -1;
   }
+#if HTP_HMX_V68 && HTP_F16_M_AWARE_VTCM
+  htp_f16_vtcm_layout layout;
+  const size_t usable_size = vtcm_manager_get_usable_size();
+  if (!htp_f16_plan_vtcm(usable_size, m, k, n, ACTIVATION_AREA_SIZE, &layout) ||
+      !htp_f16_layout_address_fits((uintptr_t) vtcm_ptr, usable_size, &layout)) {
+    return -1;
+  }
+  const size_t weight_area_size = layout.weight_size;
+  const size_t activation_area_size = layout.activation_size;
+  const size_t output_area_size = layout.output_size;
+  size_t m_chunk_n_rows = layout.m_chunk_n_rows;
+  size_t n_chunk_n_cols = layout.n_chunk_n_cols;
+#else
+  const size_t weight_area_size     = WEIGHT_AREA_SIZE;
+  const size_t activation_area_size = ACTIVATION_AREA_SIZE;
+  const size_t output_area_size     = OUTPUT_AREA_SIZE;
+#endif
   __fp16  *vtcm_weight     = (__fp16 *) vtcm_seq_alloc(&vtcm_ptr, weight_area_size);
   __fp16  *vtcm_activation = (__fp16 *) vtcm_seq_alloc(&vtcm_ptr, activation_area_size);
   __fp16  *vtcm_output     = (__fp16 *) vtcm_seq_alloc(&vtcm_ptr, output_area_size);
@@ -961,6 +979,7 @@ int hmx_mat_mul_permuted_w16a32(float *restrict dst, const float *restrict activ
 
   hmx_init_column_scales(vtcm_scales, Q6_V_vsplat_R(0x3c00));  // fp16: 1.0
 
+#if !(HTP_HMX_V68 && HTP_F16_M_AWARE_VTCM)
   size_t vec_dot_size       = k * sizeof(__fp16);
   size_t m_chunk_max_n_rows = align_down(activation_area_size / vec_dot_size, HMX_FP16_TILE_N_ROWS);
   size_t n_chunk_max_n_cols = align_down(weight_area_size / vec_dot_size, HMX_FP16_TILE_N_COLS);
@@ -968,6 +987,7 @@ int hmx_mat_mul_permuted_w16a32(float *restrict dst, const float *restrict activ
   size_t m_chunk_n_rows = 0, n_chunk_n_cols = 0;
   find_chunk_size(m_chunk_max_n_rows, n_chunk_max_n_cols, output_area_size / sizeof(__fp16), HMX_FP16_TILE_N_ROWS,
                   HMX_FP16_TILE_N_COLS, &m_chunk_n_rows, &n_chunk_n_cols);
+#endif
 
   // FARF(ALWAYS, "computed chunk size: %d, %d", m_chunk_n_rows, n_chunk_n_cols);
   if (m_chunk_n_rows == 0 || n_chunk_n_cols == 0) {

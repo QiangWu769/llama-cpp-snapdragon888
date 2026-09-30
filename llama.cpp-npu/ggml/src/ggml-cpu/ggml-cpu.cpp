@@ -1,6 +1,7 @@
 #include "ggml-backend.h"
 #include "ggml-backend-impl.h"
 #include "ggml-cpu.h"
+#include "ggml-htp-op-support.h"
 #include "ggml-cpu-aarch64.h"
 #include "ggml-cpu-traits.h"
 #include "ggml-impl.h"
@@ -367,6 +368,11 @@ static ggml_backend_buffer_t ggml_backend_cpu_device_buffer_from_host_ptr(ggml_b
 }
 
 static bool ggml_backend_cpu_device_supports_op(ggml_backend_dev_t dev, const struct ggml_tensor * op) {
+    if (ggml_htp_split_cpu_ops_enabled() && ggml_htp_has_permuted_weight(op)) {
+        // The converter's packed blocks are not ordinary GGML F16/Q4/Q8 rows.
+        // A scheduler fallback here must fail rather than silently corrupt logits.
+        return false;
+    }
     const struct ggml_tensor * src0 = op->src[0];
     const struct ggml_tensor * src1 = op->src[1];
 

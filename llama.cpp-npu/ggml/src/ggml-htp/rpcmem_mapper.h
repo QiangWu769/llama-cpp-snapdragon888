@@ -32,6 +32,8 @@ struct RpcMemMapper {
     const std::list<UnmapRequest> & get_pending_unmap_reqs() const { return pending_unmap_reqs; }
 
     void unmap_all_pending_buffers();
+    bool get_buffer_mapping(void *base, UnmapRequest &mapping) const;
+    void retire_buffer_mapping(void *base);
 
     void dump_state() const; // for debugging
 

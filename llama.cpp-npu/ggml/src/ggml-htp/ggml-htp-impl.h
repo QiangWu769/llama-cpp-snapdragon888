@@ -2,7 +2,10 @@
 #pragma once
 
 #include "ggml.h"
+#include "htp-cpu-impl.h"
 #include "rpcmem_mapper.h"
+
+#include <mutex>
 
 static const char * HTP_OPS_DL_PATH = "libhtp_ops.so";
 
@@ -16,6 +19,11 @@ struct ggml_backend_htp_context {
 
     int                      n_threads  = 0;
     struct ggml_threadpool * threadpool = nullptr;
+    bool reuse_threadpool = false;
+
+    // The singleton shares its work buffer and pool across backend wrappers.
+    // Serialize graph execution with changes to the pool's thread count.
+    std::mutex compute_mutex;
 
     // TODO(hzx): add abort_callback & abort_callback_data
 
@@ -37,9 +45,5 @@ struct ggml_backend_htp_context {
     int init_message_channel();
 
     static ggml_backend_htp_context * instance();
+    static ggml_backend_htp_context * get_if_initialized();
 };
-
-extern "C" {
-
-enum ggml_status ggml_graph_compute_htp_hybrid(struct ggml_cgraph * cgraph, struct ggml_cplan * cplan);
-}

@@ -2,9 +2,9 @@
 
 A port of the research implementations in [haozixu/llama.cpp-npu](https://github.com/haozixu/llama.cpp-npu) and [haozixu/htp-ops-lib](https://github.com/haozixu/htp-ops-lib) to **Snapdragon 888 (SM8350 / Hexagon v68)**. Qwen2.5-0.5B runs with real HMX matrix instructions on a OnePlus 9 running Android 14, using both F16 and mixed IQ4_NL + Q8_0 models.
 
-This is a **hybrid CPU + cDSP LLM inference backend**. HMX executes matrix multiplication and attention QK/PV products; HVX and scalar DSP code handle conversion, packing and other computation. Embedding lookup, final output projection and ordinary operations run on the CPU. The GPU is unused. This backend can support on-device Agent inference; the repository does not include a mobile GUI Agent application.
+This is a **hybrid CPU + cDSP LLM inference backend**. HMX executes matrix multiplication and attention QK/PV products; HVX and scalar DSP code handle conversion, packing and other computation. Embedding lookup and ordinary operations run on the CPU. Final output projection also runs on the CPU by default; an optional packed HMX projection is validated for tied Qwen2.5-0.5B F16 weights. The GPU is unused. This backend can support on-device Agent inference; the repository does not include a mobile GUI Agent application.
 
-**End-to-end inference works, but the current short benchmarks do not outperform CPU F16.** The repository provides inspectable v68 port source, numerical validation and reproduction instructions.
+**End-to-end inference works.** Historical single-stream HMX benchmarks remain slower than CPU F16. New [utilization experiments](docs/UTILIZATION.md) add genuine parallel decoding, CPU execution partitioning, worker-pool reuse, shape-aware VTCM allocation and an optional HMX vocabulary projection, with matched phone measurements and numerical checks.
 
 ## What changed from upstream to run on Snapdragon 888?
 
@@ -29,7 +29,7 @@ Host error propagation, layout routing and thread cleanup are general correctnes
 
 See **[BUILD.md](docs/BUILD.md)** for environment setup, compilation, conversion and deployment. The parameterized entry points are [tools/build.py](tools/build.py), [tools/deploy.py](tools/deploy.py) and [tools/device.py](tools/device.py). Supply the SDK, NDK, model weights and device runtime separately.
 
-Tested toolchain: Linux x86-64, Android NDK r26d, Hexagon SDK 6.6.0.0 and Hexagon Tools 19.0.07. Tested device: OnePlus 9 LE2115, Snapdragon 888, Android 14. These runs used ordinary ADB shell and unsigned cDSP FastRPC, without invoking `su` or modifying system/vendor partitions.
+Tested toolchain: Linux x86-64, Android NDK r26d, Hexagon SDK 6.6.0.0 and Hexagon Tools 19.0.07. Tested device: OnePlus 9 LE2115, Snapdragon 888, Android 14. Original inference/operator validation used ordinary ADB shell and unsigned cDSP FastRPC. The later phone-local profiling experiments run as root to access the tested SDK telemetry. System/vendor partitions are unchanged.
 
 | Mode | Key build settings | Purpose |
 | --- | --- | --- |
@@ -76,7 +76,7 @@ GEMM tests cover long K, multiple output tiles, M tails and quantized pipelines.
 
 These are functional and numerical checks on a small model, rather than general model-accuracy conclusions. Host tests additionally cover memory layout, IEEE conversion and all 16,777,216 INT8 x FP16 scale bit-pattern combinations; host models do not replace real DSP validation. Public records are in [results/README.md](results/README.md). Methods and reproduction entry points are in [TESTING.md](docs/TESTING.md) and the [operator test notes](htp-ops-lib/tests/v68/README.md).
 
-## Current performance
+## Historical single-stream performance
 
 Short-sequence `llama-bench` runs use the same Qwen2.5-0.5B model with `-p 32 -n 8 -b 32 -ub 32 -t 4 -fa 1`, default warmup and `HTP_TRACE=0`. CPU/HMX use three repetitions each; the slower HVX reference uses one.
 
@@ -87,7 +87,7 @@ Short-sequence `llama-bench` runs use the same Qwen2.5-0.5B model with `-p 32 -n
 | HMX / F16 | 27.57 | 4.42 |
 | HMX / IQ4_NL + Q8_0 | 14.75 | 1.01 |
 
-HMX is faster than this repository's correctness-oriented HVX reference, but **does not yet outperform CPU F16**. The quantized row uses a different precision and has no matched CPU quantized baseline. These are complete hybrid-backend timings, including CPU work, communication, packing and dequantization; they do not represent peak HMX throughput. Temperature was not controlled, and CPU ARM compiler options and thread affinity were not tuned. No power or hardware-utilization conclusions are established.
+HMX is faster than this repository's correctness-oriented HVX reference, but **this historical configuration does not outperform CPU F16**. The quantized row uses a different precision and has no matched CPU quantized baseline. These are complete hybrid-backend timings, including CPU work, communication, packing and dequantization; they do not represent peak HMX throughput. Temperature was not controlled, and CPU ARM compiler options and thread affinity were not tuned. These historical timings contain no power or hardware-utilization measurement. See [UTILIZATION.md](docs/UTILIZATION.md) for the later matched experiments and decoded HMX/HVX telemetry; parallel aggregate throughput must not be compared directly with a single CPU stream.
 
 ## Provenance, layout and scope
 

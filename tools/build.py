@@ -10,12 +10,16 @@ import subprocess
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--backend', choices=('hmx', 'hvx', 'cpu'), default='hmx')
+    parser.add_argument('--m-aware-vtcm', action='store_true',
+                        help='enable experimental shape-aware FP16 VTCM layout (HMX only)')
     parser.add_argument('--sdk', default=os.environ.get('HEXAGON_SDK_ROOT'))
     parser.add_argument('--tools', default=os.environ.get('HEXAGON_TOOLS_ROOT'))
     parser.add_argument('--ndk', default=os.environ.get('ANDROID_NDK'))
     parser.add_argument('--jobs', type=int, default=6)
     parser.add_argument('--dry-run', action='store_true')
     args = parser.parse_args()
+    if args.m_aware_vtcm and args.backend != 'hmx':
+        parser.error('--m-aware-vtcm requires --backend hmx')
     if not args.ndk or (args.backend != 'cpu' and not args.sdk):
         parser.error('set ANDROID_NDK and, for HMX/HVX, HEXAGON_SDK_ROOT (or --ndk/--sdk)')
     if args.jobs < 1:
@@ -68,7 +72,8 @@ def main():
             toolchain = sdk / 'build/cmake' / ('android_toolchain.cmake' if android else 'hexagon_toolchain.cmake')
             require(toolchain)
             config.update(CMAKE_TOOLCHAIN_FILE=str(toolchain), CMAKE_BUILD_TYPE='Release',
-                          HTP_USE_HMX='ON' if args.backend == 'hmx' else 'OFF')
+                          HTP_USE_HMX='ON' if args.backend == 'hmx' else 'OFF',
+                          HTP_F16_M_AWARE_VTCM='ON' if args.m_aware_vtcm else 'OFF')
             run('configure-' + dest.name, ['cmake', '-S', str(root / 'htp-ops-lib'), '-B', str(dest),
                                          '-G', 'Ninja'] + [f'-D{k}={v}' for k, v in config.items()])
             run('build-' + dest.name, ['cmake', '--build', str(dest), '-j', str(args.jobs)])

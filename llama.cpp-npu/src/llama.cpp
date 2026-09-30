@@ -9,6 +9,8 @@
 #include "ggml-alloc.h"
 #include "ggml-backend.h"
 #include "ggml-cpp.h"
+#include "ggml-htp-output-pack.h"
+#include "llama-htp-output.h"
 
 // TODO: replace with ggml API call
 #define QK_K 256
@@ -3099,6 +3101,7 @@ struct llama_model {
     struct ggml_tensor * output = nullptr;
     struct ggml_tensor * output_b = nullptr;
     struct ggml_tensor * output_norm_enc = nullptr;
+    std::unique_ptr<llama_htp_output_cache> htp_output;
 
     // classifier
     struct ggml_tensor * cls = nullptr;
@@ -9867,6 +9870,75 @@ static bool llm_load_tensors(
     return true;
 }
 
+static void llm_create_htp_output_cache(llama_model & model, const llama_model_params & params) {
+    const char * opt = std::getenv("HTP_OFFLOAD_OUTPUT");
+    if (!opt || std::strcmp(opt, "0") == 0) return;
+    if (std::strcmp(opt, "1") != 0) {
+        throw std::runtime_error("HTP_OFFLOAD_OUTPUT must be 0 or 1");
+    }
+    const ggml_tensor * weight = model.output;
+    const ggml_tensor * embedding = model.tok_embd;
+    bool tied_storage = weight && embedding && weight->data && weight->data == embedding->data &&
+                        weight->buffer && embedding->buffer &&
+                        ggml_backend_buffer_is_host(weight->buffer) &&
+                        ggml_backend_buffer_is_host(embedding->buffer) &&
+                        weight->type == GGML_TYPE_F16 && embedding->type == GGML_TYPE_F16;
+    if (tied_storage) {
+        for (int dim = 0; dim < GGML_MAX_DIMS; ++dim) {
+            tied_storage &= weight->ne[dim] == embedding->ne[dim] && weight->nb[dim] == embedding->nb[dim];
+        }
+    }
+    if (model.arch != LLM_ARCH_QWEN2 || params.vocab_only || !tied_storage ||
+        weight->ne[0] != 896 || weight->ne[1] != 151936 || weight->ne[2] != 1 || weight->ne[3] != 1 ||
+        !ggml_is_contiguous(weight) || !ggml_is_contiguous(embedding) || !model.lora_adapters.empty()) {
+        throw std::runtime_error("HTP_OFFLOAD_OUTPUT requires tied Qwen2 F16[896,151936] weights, "
+                                 "matching host storage/strides, and no LoRA adapters");
+    }
+    ggml_backend_reg_t reg = ggml_backend_reg_by_name("MyHTP");
+    ggml_backend_buffer_type_t htp_buft = reg ? ggml_backend_dev_buffer_type(ggml_backend_reg_dev_get(reg, 0)) : nullptr;
+    bool has_htp_layer = false;
+    for (const auto & layer : model.layers) {
+        if (layer.wq && layer.wq->buffer && ggml_backend_buffer_get_type(layer.wq->buffer) == htp_buft) {
+            has_htp_layer = true;
+        }
+    }
+    if (!htp_buft || !has_htp_layer) {
+        throw std::runtime_error("HTP_OFFLOAD_OUTPUT requires loaded MyHTP layer buffers");
+    }
+    using alloc_fn = ggml_backend_buffer_t (*)(size_t);
+    auto alloc = reg ? reinterpret_cast<alloc_fn>(
+        ggml_backend_reg_get_proc_address(reg, "ggml_backend_htp_alloc_output_buffer")) : nullptr;
+    if (!alloc) throw std::runtime_error("HTP_OFFLOAD_OUTPUT requires the experimental MyHTP backend");
+    const size_t k = (size_t) weight->ne[0];
+    const size_t n = (size_t) weight->ne[1] / 2;
+    const size_t bytes = k * n * sizeof(ggml_fp16_t);
+    if (k % 32 || n % 32 || bytes >= 256 * 1024 * 1024) {
+        throw std::runtime_error("HTP_OFFLOAD_OUTPUT shape exceeds the packed half-buffer contract");
+    }
+    auto cache = std::make_unique<llama_htp_output_cache>();
+    for (int part = 0; part < 2; ++part) {
+        ggml_init_params init = { ggml_tensor_overhead(), nullptr, true };
+        cache->contexts[part].reset(ggml_init(init));
+        if (!cache->contexts[part]) throw std::runtime_error("cannot allocate HTP output tensor metadata");
+        ggml_tensor * packed = ggml_new_tensor_2d(cache->contexts[part].get(), GGML_TYPE_F16, k, n);
+        ggml_set_name(packed, part == 0 ? "htp.output.packed.0.weight" : "htp.output.packed.1.weight");
+        cache->buffers[part].reset(alloc(bytes));
+        if (!cache->buffers[part]) throw std::runtime_error("cannot allocate HTP output cache buffer");
+        packed->buffer = cache->buffers[part].get();
+        packed->data = ggml_backend_buffer_get_base(cache->buffers[part].get());
+        ggml_backend_buffer_init_tensor(cache->buffers[part].get(), packed);
+        ggml_backend_buffer_set_usage(cache->buffers[part].get(), GGML_BACKEND_BUFFER_USAGE_WEIGHTS);
+        const auto * rows = static_cast<const uint16_t *>(weight->data) + (size_t) part * k * n;
+        if (!ggml_htp_pack_output_f16(static_cast<uint16_t *>(packed->data), rows, k, n)) {
+            throw std::runtime_error("cannot pack HTP output cache");
+        }
+        cache->weights[part] = packed;
+    }
+    model.htp_output = std::move(cache);
+    LLAMA_LOG_INFO("HTP: packed output projection enabled K=%zu N=%zu cache_bytes=%zu segments=2\n",
+                   k, n * 2, bytes * 2);
+}
+
 // Returns 0 on success, -1 on error, and -2 on cancellation via llama_progress_callback
 static int llama_model_load(const std::string & fname, llama_model & model, llama_model_params & params) {
     model.t_start_us = ggml_time_us();
@@ -9901,6 +9973,10 @@ static int llama_model_load(const std::string & fname, llama_model & model, llam
         }
 
         if (params.vocab_only) {
+            const char * opt = std::getenv("HTP_OFFLOAD_OUTPUT");
+            if (opt && std::strcmp(opt, "0") != 0) {
+                throw std::runtime_error("HTP_OFFLOAD_OUTPUT does not support vocab-only loading");
+            }
             LLAMA_LOG_INFO("%s: vocab only - skipping tensors\n", __func__);
             return 0;
         }
@@ -9911,6 +9987,7 @@ static int llama_model_load(const std::string & fname, llama_model & model, llam
         )) {
             return -2;
         }
+        llm_create_htp_output_cache(model, params);
     } catch (const std::exception & err) {
         LLAMA_LOG_ERROR("%s: error loading model: %s\n", __func__, err.what());
         return -1;
@@ -13111,6 +13188,9 @@ struct llm_build_context {
     }
 
     struct ggml_cgraph * build_qwen2() {
+        if (model.htp_output && !lctx.lora_adapters.empty()) {
+            GGML_ABORT("HTP_OFFLOAD_OUTPUT does not support active LoRA adapters");
+        }
         struct ggml_cgraph * gf = ggml_new_graph_custom(ctx0, llama_model_max_nodes(model), false);
 
         const int64_t n_embd_head = hparams.n_embd_head_v;
@@ -13214,7 +13294,15 @@ struct llm_build_context {
         cb(cur, "result_norm", -1);
 
         // lm_head
-        cur = llm_build_lora_mm(lctx, ctx0, model.output, cur);
+        if (model.htp_output) {
+            ggml_tensor * first = ggml_mul_mat(ctx0, model.htp_output->weights[0], cur);
+            ggml_tensor * second = ggml_mul_mat(ctx0, model.htp_output->weights[1], cur);
+            cb(first, "htp_output_part0", -1);
+            cb(second, "htp_output_part1", -1);
+            cur = ggml_concat(ctx0, first, second, 0);
+        } else {
+            cur = llm_build_lora_mm(lctx, ctx0, model.output, cur);
+        }
         cb(cur, "result_output", -1);
 
         ggml_build_forward_expand(gf, cur);

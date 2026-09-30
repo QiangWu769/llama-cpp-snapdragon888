@@ -1,8 +1,11 @@
 #include "ggml-htp.h"
+#include "ggml-htp-op-support.h"
 
 #include <dlfcn.h>
 
 #include <cstdlib>
+#include <climits>
+#include <atomic>
 #include <cstring>
 #include <memory>
 #include <mutex>
@@ -12,10 +15,23 @@
 #include "ggml-backend.h"
 #include "ggml-cpu.h"
 #include "ggml-htp-impl.h"
+#include "htp-ops.h"
+
+static std::atomic<ggml_backend_htp_context *> initialized_context { nullptr };
 
 // real backend initialization work is done here. ggml_backend_htp_init is only a wrapper
 ggml_backend_htp_context::ggml_backend_htp_context() : mapper(3 * 1024UL * 1024 * 1024, true) {
     fprintf(stderr, "Initializing HTP backend... (You should see this once)\n");
+
+    const char * reuse_pool = getenv("HTP_REUSE_THREADPOOL");
+    reuse_threadpool = reuse_pool != nullptr && strcmp(reuse_pool, "1") == 0;
+    if (reuse_threadpool) {
+        fprintf(stderr, "HTP: persistent CPU threadpool enabled\n");
+    }
+
+    if (ggml_htp_split_cpu_ops_enabled()) {
+        fprintf(stderr, "HTP: split CPU operations enabled (packed matmul/flash attention only)\n");
+    }
 
     // rpcmem_init & rpcmem_deinit are actually not required on modern Hexagon processors
     rpcmem_init();
@@ -61,6 +77,10 @@ ggml_backend_htp_context::ggml_backend_htp_context() : mapper(3 * 1024UL * 1024 
 }
 
 ggml_backend_htp_context::~ggml_backend_htp_context() {
+    std::lock_guard<std::mutex> lock(compute_mutex);
+    initialized_context.store(nullptr, std::memory_order_release);
+    ggml_htp_threadpool_free(threadpool);
+    threadpool = nullptr;
     delete[] work_data;
 
     if (ops_dl_handle) {
@@ -126,8 +146,13 @@ ggml_backend_htp_context * ggml_backend_htp_context::instance() {
     std::call_once(ctx_once_flag, [&] {
         auto * ctx = new ggml_backend_htp_context;
         ctx_ptr.reset(ctx);
+        initialized_context.store(ctx, std::memory_order_release);
     });
     return ctx_ptr.get();
+}
+
+ggml_backend_htp_context * ggml_backend_htp_context::get_if_initialized() {
+    return initialized_context.load(std::memory_order_acquire);
 }
 
 // HTP backend buffer type (shared rpcmem)
@@ -137,7 +162,15 @@ static void * ggml_backend_htp_buffer_get_base(ggml_backend_buffer_t buffer) {
 }
 
 static void ggml_backend_htp_buffer_free_buffer(ggml_backend_buffer_t buffer) {
-    rpcmem_free(buffer->context);
+    auto *ctx = ggml_backend_htp_context::get_if_initialized();
+    if (ctx) {
+        // Match graph execution's compute_mutex -> request_mutex ordering.
+        // Ordinary mapped model buffers also need retirement for safe reload.
+        std::lock_guard<std::mutex> lock(ctx->compute_mutex);
+        htp_ops_retire_and_free_rpcmem(buffer->context);
+    } else {
+        rpcmem_free(buffer->context);
+    }
 }
 
 static void ggml_backend_htp_buffer_memset_tensor(ggml_backend_buffer_t buffer, struct ggml_tensor * tensor,
@@ -282,7 +315,16 @@ static enum ggml_status ggml_backend_htp_graph_compute(ggml_backend_t backend, s
 
     struct ggml_backend_htp_context * ctx = (struct ggml_backend_htp_context *) backend->context;
 
-    struct ggml_cplan cplan = ggml_graph_plan(cgraph, ctx->n_threads, ctx->threadpool);
+    std::lock_guard<std::mutex> lock(ctx->compute_mutex);
+    if (ctx->reuse_threadpool && ctx->threadpool == nullptr) {
+        const int n_threads = ctx->n_threads > 0 ? ctx->n_threads : GGML_DEFAULT_N_THREADS;
+        ctx->threadpool = ggml_htp_threadpool_new(n_threads);
+    }
+
+    // Planning remains on the normal CPU API. Its internal pool layout is not
+    // used: only the hybrid executor receives the HTP-owned pool.
+    struct ggml_cplan cplan = ggml_graph_plan(cgraph, ctx->n_threads, nullptr);
+    cplan.threadpool = ctx->threadpool;
 
     if (ctx->work_size < cplan.work_size) {
         delete[] ctx->work_data;
@@ -393,6 +435,13 @@ static ggml_backend_buffer_type_t ggml_backend_htp_device_get_buffer_type(ggml_b
 }
 
 static bool ggml_backend_htp_device_supports_op(ggml_backend_dev_t dev, const struct ggml_tensor * op) {
+    if (ggml_htp_split_cpu_ops_enabled()) {
+        // Alias/leaf nodes carry no arithmetic. Their existing storage remains
+        // usable on HTP; all ordinary arithmetic is scheduled on cached CPU memory.
+        if (op->op == GGML_OP_NONE || op->op == GGML_OP_RESHAPE || op->op == GGML_OP_VIEW ||
+            op->op == GGML_OP_PERMUTE || op->op == GGML_OP_TRANSPOSE) return true;
+        return ggml_htp_op_layout_supported(op);
+    }
     if ((op->op == GGML_OP_GET_ROWS || op->op == GGML_OP_MUL_MAT) && op->src[0]) {
         // The loader's support probe preserves the original weight as src[0].
         // These two ordinary-layout weights are consumed on CPU, so keep them
@@ -475,12 +524,39 @@ static ggml_backend_dev_t ggml_backend_htp_reg_get_device(ggml_backend_reg_t reg
 
 static void ggml_backend_htp_set_n_threads(ggml_backend_t backend, int n_threads) {
     GGML_ASSERT(ggml_backend_is_htp(backend) && n_threads > 0);
+    const char * hybrid_threads = getenv("HTP_HYBRID_THREADS");
+    if (hybrid_threads) {
+        if (hybrid_threads[0] < '1' || hybrid_threads[0] > '8' || hybrid_threads[1] != '\0') {
+            GGML_ABORT("HTP_HYBRID_THREADS must be a single integer from 1 to 8");
+        }
+        n_threads = hybrid_threads[0] - '0';
+    }
     auto * ctx = static_cast<ggml_backend_htp_context *>(backend->context);
+    std::lock_guard<std::mutex> lock(ctx->compute_mutex);
+    if (ctx->n_threads != n_threads) {
+        ggml_htp_threadpool_free(ctx->threadpool);
+        ctx->threadpool = nullptr;
+        if (hybrid_threads) {
+            fprintf(stderr, "HTP: hybrid CPU threads=%d\n", n_threads);
+        }
+    }
     ctx->n_threads = n_threads;
+}
+
+static ggml_backend_buffer_t ggml_backend_htp_alloc_output_buffer(size_t size) {
+    if (!size || size >= 256 * 1024 * 1024 || size > INT_MAX) return nullptr;
+    (void) ggml_backend_htp_context::instance();
+    auto *buft = ggml_backend_htp_buffer_type();
+    void *data = rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_FLAG_UNCACHED, (int) size);
+    if (!data) return nullptr;
+    return ggml_backend_buffer_init(buft, ggml_backend_htp_buffer_i, data, size);
 }
 
 static void * ggml_backend_htp_reg_get_proc_address(ggml_backend_reg_t reg, const char * name) {
     GGML_UNUSED(reg);
+    if (strcmp(name, "ggml_backend_htp_alloc_output_buffer") == 0) {
+        return reinterpret_cast<void *>(ggml_backend_htp_alloc_output_buffer);
+    }
     if (strcmp(name, "ggml_backend_set_n_threads") == 0) {
         return reinterpret_cast<void *>(ggml_backend_htp_set_n_threads);
     }

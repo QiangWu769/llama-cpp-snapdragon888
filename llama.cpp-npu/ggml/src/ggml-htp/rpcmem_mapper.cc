@@ -53,7 +53,7 @@ void RpcMemMapper::validate(const ggml_tensor * dst) {
             //          buf_size / 1048576.0, fd);
             int err = fastrpc_munmap(CDSP_DOMAIN_ID, fd, buf_base, buf_size);
             if (err) {
-                fprintf(stderr, "fastrpc_munmap failed with return code: %x\n", err);
+                GGML_ABORT("HTP buffer eviction: fastrpc_munmap failed status=0x%x; mapping retained", err);
             }
             ++n_map_ops;
         }
@@ -173,11 +173,45 @@ void RpcMemMapper::unmap_all_pending_buffers() {
         //         buf_size / 1048576.0, fd);
         int err = fastrpc_munmap(CDSP_DOMAIN_ID, fd, buf_base, buf_size);
         if (err) {
-            fprintf(stderr, "fastrpc_munmap failed with return code: 0x%x\n", err);
+            GGML_ABORT("HTP pending buffer retirement: fastrpc_munmap failed status=0x%x; mapping retained", err);
         }
         ++n_map_ops;
         it = pending_unmap_reqs.erase(it);
     }
+}
+
+bool RpcMemMapper::get_buffer_mapping(void *base, UnmapRequest &mapping) const {
+    auto active = buf_mapping.find(base);
+    if (active != buf_mapping.end()) {
+        mapping = { active->second.first, base, active->second.second };
+        return true;
+    }
+    for (const auto &pending : pending_unmap_reqs) {
+        if (std::get<1>(pending) == base) {
+            mapping = pending;
+            return true;
+        }
+    }
+    return false;
+}
+
+void RpcMemMapper::retire_buffer_mapping(void *base) {
+    UnmapRequest mapping;
+    if (!get_buffer_mapping(base, mapping)) return;
+    auto [fd, address, size] = mapping;
+    int error = fastrpc_munmap(CDSP_DOMAIN_ID, fd, address, size);
+    if (error) {
+        GGML_ABORT("HTP buffer retirement: fastrpc_munmap failed status=0x%x; buffer retained", error);
+    }
+    auto active = buf_mapping.find(base);
+    if (active != buf_mapping.end()) {
+        active_map_size -= active->second.second;
+        accessed_bufs.erase(buf_iters.at(base));
+        buf_iters.erase(base);
+        buf_mapping.erase(active);
+    }
+    pending_unmap_reqs.remove_if([base](const auto &entry) { return std::get<1>(entry) == base; });
+    ++n_map_ops;
 }
 
 void RpcMemMapper::dump_state() const {

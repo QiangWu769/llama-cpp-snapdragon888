@@ -2,6 +2,7 @@
 #define _USE_MATH_DEFINES // For M_PI on MSVC
 
 #include "htp-ops.h"
+#include "htp-cpu-impl.h"
 #include "rpcmem_mapper.h"
 
 #include "../ggml-cpu/ggml-cpu-traits.h"
@@ -5631,6 +5632,32 @@ static void ggml_compute_forward_repeat_back(
 
 // ggml_compute_forward_concat
 
+/* Prove output rows do not overlap before parallelizing their writes. Higher
+ * axes may be padded or permuted; contiguous scalar elements alone are insufficient. */
+static bool ggml_concat_rows_disjoint(const struct ggml_tensor *tensor) {
+    size_t span = (size_t) tensor->ne[0] * sizeof(float);
+    int axes[3] = { 1, 2, 3 };
+    for (int i = 0; i < 3; ++i)
+        for (int j = i + 1; j < 3; ++j)
+            if (tensor->nb[axes[j]] < tensor->nb[axes[i]]) {
+                int swap = axes[i]; axes[i] = axes[j]; axes[j] = swap;
+            }
+    for (int i = 0; i < 3; ++i) {
+        const int axis = axes[i];
+        if (tensor->ne[axis] <= 1) continue;
+        const size_t count = (size_t) tensor->ne[axis] - 1;
+        if (tensor->nb[axis] < span || tensor->nb[axis] > (SIZE_MAX - span) / count) return false;
+        span += count * tensor->nb[axis];
+    }
+    return true;
+}
+
+static bool ggml_concat_storage_disjoint(const struct ggml_tensor *a, const struct ggml_tensor *b) {
+    const uintptr_t ap = (uintptr_t) a->data, bp = (uintptr_t) b->data;
+    // Ordered subtraction avoids forming an overflowing end address.
+    return ap >= bp ? ap - bp >= ggml_nbytes(b) : bp - ap >= ggml_nbytes(a);
+}
+
 static void ggml_compute_forward_concat_f32(
     const struct ggml_compute_params * params,
     struct ggml_tensor * dst) {
@@ -5648,6 +5675,38 @@ static void ggml_compute_forward_concat_f32(
     const int32_t dim = ggml_get_op_params_i32(dst, 0);
 
     GGML_ASSERT(dim >= 0 && dim < 4);
+
+    const char *fast_concat = getenv("HTP_FAST_CONCAT");
+    if (fast_concat && strcmp(fast_concat, "1") == 0 && dim == 0 &&
+        src0->type == dst->type && src1->type == dst->type &&
+        nb00 == sizeof(float) && nb10 == sizeof(float) && nb0 == sizeof(float) &&
+        ne0 > 0 && ne00 >= 0 && ne10 >= 0 && (uint64_t) ne0 <= SIZE_MAX / sizeof(float) &&
+        ne1 > 0 && ne2 > 0 && ne3 > 0 && ne1 <= INT64_MAX / ne2 && ne1 * ne2 <= INT64_MAX / ne3 &&
+        src0->data && src1->data && dst->data && ggml_concat_rows_disjoint(dst) &&
+        ggml_concat_storage_disjoint(dst, src0) && ggml_concat_storage_disjoint(dst, src1)) {
+        static atomic_flag logged = ATOMIC_FLAG_INIT;
+        if (ith == 0 && !atomic_flag_test_and_set(&logged)) {
+            fprintf(stderr, "HTP: fast dim0 concat enabled\n");
+        }
+        const int64_t rows = ne1 * ne2 * ne3;
+        const int64_t per_worker = rows / nth;
+        const int64_t extra = rows % nth;
+        const int64_t first = per_worker * ith + (ith < extra ? ith : extra);
+        const int64_t last = first + per_worker + (ith < extra);
+        const size_t first_bytes = (size_t) ne00 * sizeof(float);
+        const size_t second_bytes = (size_t) ne10 * sizeof(float);
+        for (int64_t row = first; row < last; ++row) {
+            const int64_t i1 = row % ne1;
+            const int64_t i2 = (row / ne1) % ne2;
+            const int64_t i3 = row / (ne1 * ne2);
+            char *out = (char *) dst->data + i1 * nb1 + i2 * nb2 + i3 * nb3;
+            const char *a = (const char *) src0->data + i1 * nb01 + i2 * nb02 + i3 * nb03;
+            const char *b = (const char *) src1->data + i1 * nb11 + i2 * nb12 + i3 * nb13;
+            memcpy(out, a, first_bytes);
+            memcpy(out + first_bytes, b, second_bytes);
+        }
+        return;
+    }
 
     int64_t o[4] = {0, 0, 0, 0};
     o[dim] = src0->ne[dim];
@@ -12701,7 +12760,7 @@ static void ggml_thread_cpumask_next(const bool * global_mask, bool * local_mask
     }
 }
 
-void ggml_threadpool_free(struct ggml_threadpool* threadpool) {
+static void ggml_htp_threadpool_free_impl(struct ggml_threadpool* threadpool) {
     if (!threadpool) {
         return;
     }
@@ -12730,6 +12789,14 @@ void ggml_threadpool_free(struct ggml_threadpool* threadpool) {
     const size_t workers_size = sizeof(struct ggml_compute_state) * n_threads;
     ggml_aligned_free(threadpool->workers, workers_size);
     ggml_aligned_free(threadpool, sizeof(struct ggml_threadpool));
+}
+
+void ggml_htp_threadpool_free(struct ggml_threadpool * threadpool) {
+    ggml_htp_threadpool_free_impl(threadpool);
+}
+
+void ggml_threadpool_free(struct ggml_threadpool * threadpool) {
+    ggml_htp_threadpool_free_impl(threadpool);
 }
 
 // pause/resume must be called under mutex
@@ -12781,8 +12848,14 @@ static thread_ret_t ggml_graph_compute_thread(void * data) {
     int64_t t0 = ggml_time_us();
     int64_t npu_us = 0;
     int64_t cpu_us = 0;
+    const char *cpu_trace_value = state->ith == 0 ? getenv("HTP_CPU_TRACE") : NULL;
+    const bool cpu_trace = cpu_trace_value != NULL && strcmp(cpu_trace_value, "1") == 0;
 
-    for (int node_n = 0; node_n < cgraph->n_nodes && !tp->abort; node_n++) {
+    // In a reused pool, a worker can observe the first abort request before
+    // entering the graph. It must still participate in that node's barrier;
+    // subsequent abort decisions are synchronized by the preceding barrier.
+    const bool reused_pool = cplan->threadpool != NULL;
+    for (int node_n = 0; node_n < cgraph->n_nodes && (reused_pool && node_n == 0 ? true : !tp->abort); node_n++) {
         struct ggml_tensor * node = cgraph->nodes[node_n];
 
         // if (state->ith == 0) {
@@ -12817,8 +12890,24 @@ static thread_ret_t ggml_graph_compute_thread(void * data) {
                 npu_us += elapsed_time;
             } else {
                 cpu_us += elapsed_time;
+                if (cpu_trace) {
+                    fprintf(stderr, "HTP CPU completed: source=HTP-hybrid tensor=%s op=%s elapsed_us=%lld\n",
+                            node->name, ggml_op_name(node->op), (long long) elapsed_time);
+                    if (node->op == GGML_OP_MUL_MAT) {
+                        fprintf(stderr, "HTP CPU matrix shape: source=HTP-hybrid tensor=%s M=%lld K=%lld N=%lld\n",
+                                node->name, (long long) ggml_nrows(node->src[1]),
+                                (long long) node->src[0]->ne[0], (long long) node->src[0]->ne[1]);
+                    }
+                }
             }
         }
+    }
+
+    if (cplan->threadpool != NULL) {
+        // A persistent pool may immediately receive another graph with a new
+        // stack-allocated plan. Finish every worker's reads of this graph and
+        // plan before the caller is allowed to replace either one.
+        ggml_barrier_htp(tp);
     }
 
     int64_t elapsed_us = ggml_time_us() - t0;
@@ -13038,6 +13127,12 @@ static struct ggml_threadpool * ggml_threadpool_new_impl(
     return threadpool;
 }
 
+struct ggml_threadpool * ggml_htp_threadpool_new(int n_threads) {
+    GGML_ASSERT(n_threads > 0);
+    struct ggml_threadpool_params ttp = ggml_threadpool_params_default(n_threads);
+    return ggml_threadpool_new_impl(&ttp, NULL, NULL);
+}
+
 // NOTE(hzx): This is a specialized version. Don't use ggml_cpu_init()
 static void ggml_htp_cpu_init(void) {
     // needed to initialize f16 tables
@@ -13136,7 +13231,7 @@ enum ggml_status ggml_graph_compute_htp_hybrid(struct ggml_cgraph * cgraph, stru
     enum ggml_status ret = threadpool->ec;
 
     if (disposable_threadpool) {
-        ggml_threadpool_free(threadpool);
+        ggml_htp_threadpool_free_impl(threadpool);
     }
 
     return ret;

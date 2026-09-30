@@ -106,10 +106,12 @@ static void msg_receiver_loop(void *param) {
         case REQUEST_TYPE_RPCMEM_MAP:
           {
             struct RpcmemMapRequest *map_req = (struct RpcmemMapRequest *) req_hdr->data;
+            int status = 0;
             for (int j = 0; j < map_req->n_puts; ++j) {
-              mmap_manager_put_map(map_req->fds[j]);
+              int result = mmap_manager_put_map(map_req->fds[j]);
+              if (result != 0 && status == 0) status = result;
             }
-            req_hdr->state = 0;
+            req_hdr->state = status;
           }
           break;
         default:
