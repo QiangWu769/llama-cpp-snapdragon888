@@ -1,5 +1,9 @@
 # Snapdragon 888 HMX utilization experiments
 
+The subsequent [activity calibration](LOAD-CALIBRATION.md) tests the SDK percentage
+against controlled DSP duty cycles and corrects an SDK timestamp scale error for
+phase alignment. The historical whole-capture statistics below remain unchanged.
+
 The target is OnePlus 9 LE2115, Snapdragon 888 / SM8350, Hexagon v68,
 Android 14, with converted Qwen2.5-0.5B F16 weights. These experiments
 measure useful decoding throughput and decoded HMX/HVX activity together.

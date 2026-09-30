@@ -6,6 +6,11 @@ This is a **hybrid CPU + cDSP LLM inference backend**. HMX executes matrix multi
 
 **End-to-end inference works.** Historical single-stream HMX benchmarks remain slower than CPU F16. New [utilization experiments](docs/UTILIZATION.md) add genuine parallel decoding, CPU execution partitioning, worker-pool reuse, shape-aware VTCM allocation and an optional HMX vocabulary projection, with matched phone measurements and numerical checks.
 
+[HVX/HMX activity calibration](docs/LOAD-CALIBRATION.md) verifies on-phone counters
+against controlled DSP duty cycles, distinguishes SDK percentages from elapsed
+activity, and corrects a version-specific timestamp bias before aligning inference
+phases. The experiment includes source and measured evidence.
+
 ## What changed from upstream to run on Snapdragon 888?
 
 The upstream README requires Snapdragon 8 Gen 2 or newer and recommends `DSP_ARCH=v73`. This port required more than changing the compilation target to `v68`:
