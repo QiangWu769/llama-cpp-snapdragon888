@@ -1,5 +1,11 @@
 # Recorded Snapdragon 888 results
 
+New instruction-level evidence is in
+[hmx-features-2026-09-29](hmx-features-2026-09-29): 87 independent phone cases
+cover V81 feature compatibility with the v68 legacy HMX interface. This uses
+a separate probe binary; its hash must not be confused with the production
+backend hash below.
+
 These are existing measurements from one OnePlus 9 LE2115, SM8350
 (Snapdragon 888 / Hexagon v68), running Android 14. The model is
 Qwen2.5-0.5B with 494,032,768 parameters. This directory contains text evidence;

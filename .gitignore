@@ -1,5 +1,7 @@
 # Generated builds, SDKs, models, local environments and device logs
 /logs/
+/experiments/hmx-features/logs/
+*.o
 /local-config/
 /models/
 **/__pycache__/

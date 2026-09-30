@@ -1,0 +1,61 @@
+    14b4:	13 c0 e0 a6	a6e0c013 { 	mxclracc.hf }
+    14d8:	fe c3 13 92	9213c3fe { 	bias = mxmem2(r19) }
+    14e8:	fe c3 02 92	9202c3fe { 	bias = mxmem2(r2) }
+    14f4:	fe c3 02 92	9202c3fe { 	bias = mxmem2(r2) }
+    1500:	fe c3 02 92	9202c3fe { 	bias = mxmem2(r2) }
+    1504:	16 c0 f6 a6	a6f6c016 { 	mxmem2(r22) = bias }
+    1510:	16 c0 e2 a6	a6e2c016 { 	mxmem2(r2) = bias }
+    151c:	16 c0 e2 a6	a6e2c016 { 	mxmem2(r2) = bias }
+    1528:	16 c0 e2 a6	a6e2c016 { 	mxmem2(r2) = bias }
+    1538:	fe c3 13 92	9213c3fe { 	bias = mxmem2(r19) }
+    1540:	fe c3 13 92	9213c3fe { 	bias = mxmem2(r19) }
+    1550:	10 c0 f6 a6	a6f6c010 { 	mxmem(r22) = bias }
+    1558:	ff c3 13 92	9213c3ff { 	bias = mxmem(r19) }
+    157c:	16 c0 f6 a6	a6f6c016 { 	mxmem2(r22) = bias }
+    15f8:	16 c0 f6 a6	a6f6c016 { 	mxmem2(r22) = bias }
+    1608:	10 c0 f6 a6	a6f6c010 { 	mxmem(r22) = bias }
+    191c:	0c e3 e4 a6	a6e4e30c { 	mxmem(r4,r3):after:retain.hf = acc }
+    192c:	04 e3 e4 a6	a6e4e304 { 	mxmem(r4,r3):after.hf = acc }
+    193c:	15 c0 e0 a6	a6e0c015 { 	mxswapacc.hf }
+    1948:	04 e3 e2 a6	a6e2e304 { 	mxmem(r2,r3):after.hf = acc }
+    1958:	e2 59 17 92	921759e2 { 	activation.hf = mxmem(r23,r25):deep
+    195c:	ef f5 12 92	9212f5ef   	weight.hf = mxmem(r18,r21) }
+    1968:	04 e2 e3 a6	a6e3e204 { 	mxmem(r3,r2):after.hf = acc }
+    1970:	13 c0 e0 a6	a6e0c013 { 	mxclracc.hf }
+    197c:	04 e2 e3 a6	a6e3e204 { 	mxmem(r3,r2):after.hf = acc }
+    1984:	15 c0 e0 a6	a6e0c015 { 	mxswapacc.hf }
+    1990:	0c e3 e4 a6	a6e4e30c { 	mxmem(r4,r3):after:retain.hf = acc }
+    1994:	15 c0 e0 a6	a6e0c015 { 	mxswapacc.hf }
+    19a0:	0c e3 e2 a6	a6e2e30c { 	mxmem(r2,r3):after:retain.hf = acc }
+    19b8:	0c e3 e4 a6	a6e4e30c { 	mxmem(r4,r3):after:retain.hf = acc }
+    19bc:	15 c0 e0 a6	a6e0c015 { 	mxswapacc.hf }
+    19c0:	e2 59 17 92	921759e2 { 	activation.hf = mxmem(r23,r25):deep
+    19c4:	ef f5 12 92	9212f5ef   	weight.hf = mxmem(r18,r21) }
+    19c8:	e2 59 17 92	921759e2 { 	activation.hf = mxmem(r23,r25):deep
+    19cc:	ef f5 12 92	9212f5ef   	weight.hf = mxmem(r18,r21) }
+    19d8:	0c e3 e2 a6	a6e2e30c { 	mxmem(r2,r3):after:retain.hf = acc }
+    19dc:	13 c0 e0 a6	a6e0c013 { 	mxclracc.hf }
+    19e8:	0c e2 e6 a6	a6e6e20c { 	mxmem(r6,r2):after:retain.hf = acc }
+    19ec:	15 c0 e0 a6	a6e0c015 { 	mxswapacc.hf }
+    19f8:	0c e2 e5 a6	a6e5e20c { 	mxmem(r5,r2):after:retain.hf = acc }
+    1a08:	04 e3 e4 a6	a6e4e304 { 	mxmem(r4,r3):after.hf = acc }
+    1a0c:	e2 59 17 92	921759e2 { 	activation.hf = mxmem(r23,r25):deep
+    1a10:	ef f5 12 92	9212f5ef   	weight.hf = mxmem(r18,r21) }
+    1a1c:	04 e3 e2 a6	a6e2e304 { 	mxmem(r2,r3):after.hf = acc }
+    1a40:	00 e2 e3 a6	a6e3e200 { 	mxmem(r3,r2):before.hf = acc }
+    1a50:	0c e3 e4 a6	a6e4e30c { 	mxmem(r4,r3):after:retain.hf = acc }
+    1a5c:	0c e3 e2 a6	a6e2e30c { 	mxmem(r2,r3):after:retain.hf = acc }
+    1a74:	08 e3 e4 a6	a6e4e308 { 	mxmem(r4,r3):before:retain.hf = acc }
+    1a80:	0c e3 e2 a6	a6e2e30c { 	mxmem(r2,r3):after:retain.hf = acc }
+    1a8c:	08 e2 e6 a6	a6e6e208 { 	mxmem(r6,r2):before:retain.hf = acc }
+    1a98:	0c e2 e5 a6	a6e5e20c { 	mxmem(r5,r2):after:retain.hf = acc }
+    1ab4:	09 e2 e3 a6	a6e3e209 { 	mxmem(r3,r2):after:pos.hf = acc }
+    1ac0:	04 e2 e3 a6	a6e3e204 { 	mxmem(r3,r2):after.hf = acc }
+    1d78:	e4 41 00 92	920041e4 { 	activation.hf = mxmem(r0,r1)
+    1d7c:	f4 e3 02 92	9202e3f4   	weight.hf = mxmem(r2,r3):deep }
+    1d8c:	e4 41 00 92	920041e4 { 	activation.hf = mxmem(r0,r1)
+    1d90:	ef e3 02 92	9202e3ef   	weight.hf = mxmem(r2,r3) }
+    1d98:	f8 41 00 92	920041f8 { 	activation.hf = mxmem(r0,r1):single
+    1d9c:	ef e3 02 92	9202e3ef   	weight.hf = mxmem(r2,r3) }
+    1da4:	e2 41 00 92	920041e2 { 	activation.hf = mxmem(r0,r1):deep
+    1da8:	ef e3 02 92	9202e3ef   	weight.hf = mxmem(r2,r3) }

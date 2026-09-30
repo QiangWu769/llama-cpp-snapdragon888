@@ -1,0 +1,7 @@
+<experiment>/compile-probes/epilogue/compile_modern.c:13:22: error: instruction requires: -mv73 or higher
+   13 |     __asm__ volatile("cvt.hf = acc(%0)" :: "r"(control) : "memory");
+      |                      ^
+<inline asm>:1:2: note: instantiated into assembly here
+    1 |         cvt.hf = acc(r1)
+      |         ^
+1 error generated.

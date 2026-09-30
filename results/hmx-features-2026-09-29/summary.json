@@ -1,0 +1,3295 @@
+[
+  {
+    "name": "baseline_act_7ff",
+    "args": [
+      0,
+      1,
+      0,
+      31,
+      1,
+      2047,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "basic_act_7ff",
+    "args": [
+      1,
+      1,
+      0,
+      31,
+      1,
+      2047,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "baseline_act_77c",
+    "args": [
+      0,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "basic_act_77c",
+    "args": [
+      1,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "baseline_act_7fe",
+    "args": [
+      0,
+      1,
+      0,
+      31,
+      1,
+      2046,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "basic_act_7fe",
+    "args": [
+      1,
+      1,
+      0,
+      31,
+      1,
+      2046,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "baseline_pattern_0",
+    "args": [
+      0,
+      1,
+      0,
+      31,
+      0,
+      2047,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "baseline_pattern_2",
+    "args": [
+      0,
+      1,
+      0,
+      31,
+      2,
+      2047,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "bc80,ba00,b600,0000,3600,3a00,3c80,bb00,b800,b000,3400,3900,3c00,bc00,b900,b400,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "baseline_pattern_3",
+    "args": [
+      0,
+      1,
+      0,
+      31,
+      3,
+      2047,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "c000,c000,c000,c000,c000,c000,c000,c000,c000,c000,c000,c000,c000,c000,c000,c000,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "partial_0_7",
+    "args": [
+      2,
+      1,
+      0,
+      7,
+      1,
+      1820,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "3c80,3200,ba00,b080,3a80,b4c0,b9c0,3680,3800,b8e0,b820,3c80,3200,ba00,b080,3a80,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "partial_8_15",
+    "args": [
+      2,
+      1,
+      8,
+      15,
+      1,
+      1852,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "3540,bbe0,ba00,4020,b480,bb40,2400,3c70,b9c0,baa0,3ba0,3540,bbe0,ba00,4020,b480,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "partial_16_31",
+    "args": [
+      2,
+      1,
+      16,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "bbc0,bd00,3e40,36c0,bda0,b940,4100,b5c0,be00,3480,3d80,bbc0,bd00,3e40,36c0,bda0,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "partial_24_31",
+    "args": [
+      2,
+      1,
+      24,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "b920,b8c0,3c00,b540,ba60,b380,3f80,b7c0,ba40,34c0,3980,b920,b8c0,3c00,b540,ba60,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "partial_0_15",
+    "args": [
+      2,
+      1,
+      0,
+      15,
+      1,
+      1852,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "3dd0,ba60,be00,3fb0,3840,bcd0,b9a0,3e10,b300,bdc0,3700,3dd0,ba60,be00,3fb0,3840,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "deep_2",
+    "args": [
+      3,
+      2,
+      0,
+      31,
+      1,
+      3964,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "3d90,c460,bae0,453c,be40,c43c,40c0,442c,c2f8,c220,4468,3d90,c460,bae0,453c,be40,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "deep_3",
+    "args": [
+      3,
+      3,
+      0,
+      31,
+      1,
+      6012,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "42c0,c654,c038,47f4,bda0,c678,40c8,4644,c4a4,c510,4608,42c0,c654,c038,47f4,bda0,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "deep_8",
+    "args": [
+      3,
+      8,
+      0,
+      31,
+      1,
+      16252,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "4baa,c748,cab2,4934,4928,cad6,c634,4bda,3f70,cbe2,4168,4baa,c748,cab2,4934,4928,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "deep_32",
+    "args": [
+      3,
+      32,
+      0,
+      31,
+      1,
+      65404,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "4c3f,3980,cc6b,42a8,4bb2,c63c,caa0,4982,48ec,cb70,c538,4c3f,3980,cc6b,42a8,4bb2,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "deep_partial_3_24_15",
+    "args": [
+      3,
+      3,
+      24,
+      15,
+      1,
+      5948,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "4128,c2c8,bd20,41c8,b100,c370,3df0,4388,c010,c208,41c0,4128,c2c8,bd20,41c8,b100,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "deep_partial_2_16_7",
+    "args": [
+      3,
+      2,
+      16,
+      7,
+      1,
+      3868,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "b480,be50,3b40,3be0,b940,bd10,4028,3440,bd80,b700,3d70,b480,be50,3b40,3be0,b940,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "weight_negate",
+    "args": [
+      6,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 0,
+        "max_abs_error": 6.34375
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": false
+  },
+  {
+    "name": "weight_negate_ones",
+    "args": [
+      6,
+      1,
+      0,
+      31,
+      0,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 0,
+        "max_abs_error": 64.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": false
+  },
+  {
+    "name": "accumulate",
+    "args": [
+      10,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "3bc0,c418,3000,44b0,bf00,c370,4330,40a0,c2e0,c0a0,4340,3bc0,c418,3000,44b0,bf00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "retain",
+    "args": [
+      11,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      },
+      {
+        "output": 1,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      },
+      {
+        "output": 1,
+        "sentinel_equal": 0,
+        "first_raw": "3bc0,c418,3000,44b0,bf00,c370,4330,40a0,c2e0,c0a0,4340,3bc0,c418,3000,44b0,bf00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "convert_clear",
+    "args": [
+      12,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      },
+      {
+        "output": 1,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      },
+      {
+        "output": 1,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "explicit_clear",
+    "args": [
+      13,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "repeat_retain",
+    "args": [
+      14,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      },
+      {
+        "output": 1,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      },
+      {
+        "output": 1,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "explicit_swap",
+    "args": [
+      20,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      },
+      {
+        "output": 1,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,"
+      },
+      {
+        "output": 1,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "positive_0",
+    "args": [
+      15,
+      1,
+      0,
+      31,
+      0,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "positive_1",
+    "args": [
+      15,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,0000,2c00,40b0,0000,0000,3f30,3ca0,0000,0000,3f40,37c0,0000,2c00,40b0,0000,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "positive_3",
+    "args": [
+      15,
+      1,
+      0,
+      31,
+      3,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "before",
+    "args": [
+      16,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 1024,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 1024,
+        "first_raw": "7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "weight_deep",
+    "args": [
+      4,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      },
+      {
+        "output": 1,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      },
+      {
+        "output": 1,
+        "sentinel_equal": 0,
+        "first_raw": "bca0,3f40,37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "weight_deep_extra_swap_control",
+    "args": [
+      4,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      1,
+      0
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      },
+      {
+        "output": 1,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 0,
+        "max_abs_error": 3.171875
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      },
+      {
+        "output": 1,
+        "sentinel_equal": 0,
+        "first_raw": "0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "single_shift_0",
+    "args": [
+      5,
+      1,
+      0,
+      31,
+      5,
+      3964,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "c080,c080,c080,c080,c080,c080,c080,c080,c080,c080,c080,c080,c080,c080,c080,c080,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "single_shift_4",
+    "args": [
+      5,
+      1,
+      0,
+      31,
+      5,
+      3964,
+      2047,
+      4,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "bf00,bf00,bf00,bf00,bf00,bf00,bf00,bf00,bf00,bf00,bf00,bf00,bf00,bf00,bf00,bf00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "single_shift_20",
+    "args": [
+      5,
+      1,
+      0,
+      31,
+      5,
+      3964,
+      2047,
+      20,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "3400,3400,3400,3400,3400,3400,3400,3400,3400,3400,3400,3400,3400,3400,3400,3400,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "single_shift_28",
+    "args": [
+      5,
+      1,
+      0,
+      31,
+      5,
+      3964,
+      2047,
+      28,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "3d00,3d00,3d00,3d00,3d00,3d00,3d00,3d00,3d00,3d00,3d00,3d00,3d00,3d00,3d00,3d00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "single_negative_dy",
+    "args": [
+      5,
+      1,
+      0,
+      31,
+      5,
+      3964,
+      2047,
+      20,
+      28,
+      1,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "b600,b600,b600,b600,b600,b600,b600,b600,b600,b600,b600,b600,b600,b600,b600,b600,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "single_nonadjacent",
+    "args": [
+      5,
+      1,
+      0,
+      31,
+      1,
+      3964,
+      2047,
+      20,
+      28,
+      2,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "3e80,c000,bca0,4030,2400,c078,3100,4170,bd00,bfd0,3ff0,3e80,c000,bca0,4030,2400,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "single_signed_full",
+    "args": [
+      5,
+      1,
+      0,
+      31,
+      1,
+      3964,
+      2047,
+      20,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "3e80,c000,bca0,4030,2400,c078,3100,4170,bd00,bfd0,3ff0,3e80,c000,bca0,4030,2400,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "single_partial",
+    "args": [
+      5,
+      1,
+      8,
+      15,
+      1,
+      3900,
+      2047,
+      4,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "b940,3880,3a00,b8e0,b6c0,3900,3000,b9c0,a400,3980,b540,b940,3880,3a00,b8e0,b6c0,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "bias_legacy_roundtrip_0",
+    "args": [
+      17,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      1
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [],
+    "observed": [],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "bias_legacy_roundtrip_1",
+    "args": [
+      17,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      1,
+      1
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [],
+    "observed": [],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "bias2_roundtrip_0",
+    "args": [
+      18,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      1
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [],
+    "observed": [],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "bias2_roundtrip_1",
+    "args": [
+      18,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      1,
+      1
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [],
+    "observed": [],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "four_bias_banks_roundtrip",
+    "args": [
+      28,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      1
+    ],
+    "exploratory": false,
+    "exit": 1,
+    "numeric": [],
+    "observed": [],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": false
+  },
+  {
+    "name": "custom_bias_2",
+    "args": [
+      19,
+      1,
+      0,
+      31,
+      3,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      2
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 32,
+        "nonfinite": 0,
+        "max_abs_error": 0.0009765625
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "bfff,bfff,bfff,bfff,bfff,bfff,bfff,bfff,bfff,bfff,bfff,bfff,bfff,bfff,bfff,bfff,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "custom_bias_3",
+    "args": [
+      19,
+      1,
+      0,
+      31,
+      3,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      3
+    ],
+    "exploratory": true,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "c000,c000,c000,c000,c000,c000,c000,c000,c000,c000,c000,c000,c000,c000,c000,c000,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": null
+  },
+  {
+    "name": "custom_bias_4",
+    "args": [
+      19,
+      1,
+      0,
+      31,
+      3,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      4
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 0,
+        "max_abs_error": 1.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "bc00,bc00,bc00,bc00,bc00,bc00,bc00,bc00,bc00,bc00,bc00,bc00,bc00,bc00,bc00,bc00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "custom_bias_5",
+    "args": [
+      19,
+      1,
+      0,
+      31,
+      3,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      5
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 16,
+        "nonfinite": 0,
+        "max_abs_error": 0.0009765625
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "bfff,c000,bfff,c000,bfff,c000,bfff,c000,bfff,c000,bfff,c000,bfff,c000,bfff,c000,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "add_bias_p1_b4_pos0",
+    "args": [
+      22,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      4
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "3df0,bc30,3c40,42b0,3000,bae0,4198,4050,b9c0,b100,41a0,3df0,bc30,3c40,42b0,3000,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "add_bias_p1_b4_pos1",
+    "args": [
+      22,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      1,
+      4
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "3df0,0000,3c40,42b0,3000,0000,4198,4050,0000,0000,41a0,3df0,0000,3c40,42b0,3000,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "add_bias_p1_b7_pos0",
+    "args": [
+      22,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      7
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "b440,c118,b200,40b0,b900,bd70,4118,3680,c070,bda0,3f40,39e0,be30,3a80,3e60,bd80,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "add_bias_p1_b7_pos1",
+    "args": [
+      22,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      1,
+      7
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "0000,0000,0000,40b0,0000,0000,4118,3680,0000,0000,3f40,39e0,0000,3a80,3e60,0000,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "add_bias_p3_b4_pos0",
+    "args": [
+      22,
+      1,
+      0,
+      31,
+      3,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      4
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "bc00,bc00,bc00,bc00,bc00,bc00,bc00,bc00,bc00,bc00,bc00,bc00,bc00,bc00,bc00,bc00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "add_bias_p3_b4_pos1",
+    "args": [
+      22,
+      1,
+      0,
+      31,
+      3,
+      1916,
+      2047,
+      0,
+      28,
+      1,
+      4
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "add_bias_p3_b7_pos0",
+    "args": [
+      22,
+      1,
+      0,
+      31,
+      3,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      7
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "c180,c100,c080,c000,bf00,be00,bd00,c180,c100,c080,c000,bf00,be00,bd00,c180,c100,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "add_bias_p3_b7_pos1",
+    "args": [
+      22,
+      1,
+      0,
+      31,
+      3,
+      1916,
+      2047,
+      0,
+      28,
+      1,
+      7
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "bias_amplitudes_0",
+    "args": [
+      25,
+      1,
+      0,
+      31,
+      6,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": true,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "e800,d400,d000,c400,c000,bc00,b800,0000,3800,3c00,4000,4400,5000,5400,6800,7bff,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": null
+  },
+  {
+    "name": "bias_amplitudes_2",
+    "args": [
+      25,
+      1,
+      0,
+      31,
+      6,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      2
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 704,
+        "nonfinite": 0,
+        "max_abs_error": 65502.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "bfff,bfff,bfff,bfff,bfff,bc00,b800,0000,3800,3c00,3fff,3fff,3fff,3fff,3fff,3fff,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "bias_amplitudes_3",
+    "args": [
+      25,
+      1,
+      0,
+      31,
+      6,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      3
+    ],
+    "exploratory": true,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "e800,d400,d000,c400,c000,bc00,b800,0000,3800,3c00,4000,4400,5000,5400,6800,7bff,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": null
+  },
+  {
+    "name": "bias_amplitudes_4",
+    "args": [
+      25,
+      1,
+      0,
+      31,
+      6,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      4
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 896,
+        "nonfinite": 0,
+        "max_abs_error": 1.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "e7ff,d3e0,cfc0,c200,bc00,0000,3800,3c00,3e00,4000,4200,4500,5020,5410,6800,7bff,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "bias_amplitudes_6",
+    "args": [
+      25,
+      1,
+      0,
+      31,
+      6,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      6
+    ],
+    "exploratory": true,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "e800,d400,d000,c400,c000,bc00,b800,0000,3800,3c00,4000,4400,5000,5400,6800,7bff,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": null
+  },
+  {
+    "name": "legacy_clip",
+    "args": [
+      27,
+      1,
+      0,
+      31,
+      6,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      2
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "bfff,bfff,bfff,bfff,bfff,bc00,b800,0000,3800,3c00,3fff,3fff,3fff,3fff,3fff,3fff,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "v81_shape_0_legacy_converter",
+    "args": [
+      26,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      8
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 413,
+        "nonfinite": 0,
+        "max_abs_error": 1.17285156
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,bfff,2c00,3fff,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,bfff,2c00,3fff,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "v81_shape_1_legacy_converter",
+    "args": [
+      26,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      1,
+      8
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 709,
+        "nonfinite": 0,
+        "max_abs_error": 1.99902344
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,bfff,2c00,3fff,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,bfff,2c00,3fff,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "v81_shape_2_legacy_converter",
+    "args": [
+      26,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      2,
+      8
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 728,
+        "nonfinite": 0,
+        "max_abs_error": 1.99902344
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,bfff,2c00,3fff,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,bfff,2c00,3fff,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "v81_shape_3_legacy_converter",
+    "args": [
+      26,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      3,
+      8
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 728,
+        "nonfinite": 0,
+        "max_abs_error": 4.93652344
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,bfff,2c00,3fff,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,bfff,2c00,3fff,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "v81_shape_4_legacy_converter",
+    "args": [
+      26,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      4,
+      8
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 0,
+        "max_abs_error": 5.17089844
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,bfff,2c00,3fff,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,bfff,2c00,3fff,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "v81_shape_5_legacy_converter",
+    "args": [
+      26,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      5,
+      8
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 0,
+        "max_abs_error": 4.93652344
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,bfff,2c00,3fff,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,bfff,2c00,3fff,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "v81_shape_6_legacy_converter",
+    "args": [
+      26,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      6,
+      8
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 0,
+        "max_abs_error": 5.17089844
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,bfff,2c00,3fff,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,bfff,2c00,3fff,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "v81_shape_7_legacy_converter",
+    "args": [
+      26,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      7,
+      8
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 709,
+        "nonfinite": 0,
+        "max_abs_error": 5.17089844
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,bfff,2c00,3fff,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,bfff,2c00,3fff,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "v81_input_bias_legacy_converter",
+    "args": [
+      26,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      9
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 0,
+        "max_abs_error": 2.17285156
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,bfff,2c00,3fff,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,bfff,2c00,3fff,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "v81_scale_legacy_converter",
+    "args": [
+      26,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      10
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 0,
+        "max_abs_error": 3.171875
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "v81_output_bias_legacy_converter",
+    "args": [
+      26,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      11
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 535,
+        "nonfinite": 0,
+        "max_abs_error": 2.17285156
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "3df0,bc30,3c40,3fff,3002,bae0,3fff,3fff,b9c0,b0fe,3fff,3df0,bc30,3c40,3fff,3002,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "v81_combined_legacy_converter",
+    "args": [
+      26,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      12
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 0,
+        "max_abs_error": 1.71875
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "3380,c098,b200,4030,bc80,c038,3e30,3b40,bfe0,bda0,3e40,3380,c098,b200,4030,bc80,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "clear_both_banks",
+    "args": [
+      23,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      },
+      {
+        "output": 1,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      },
+      {
+        "output": 2,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      },
+      {
+        "output": 3,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      },
+      {
+        "output": 1,
+        "sentinel_equal": 0,
+        "first_raw": "3bc0,c418,3000,44b0,bf00,c370,4330,40a0,c2e0,c0a0,4340,3bc0,c418,3000,44b0,bf00,"
+      },
+      {
+        "output": 2,
+        "sentinel_equal": 0,
+        "first_raw": "0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,"
+      },
+      {
+        "output": 3,
+        "sentinel_equal": 0,
+        "first_raw": "0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,0000,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  },
+  {
+    "name": "before_sequence",
+    "args": [
+      24,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 1024,
+        "max_abs_error": 0.0
+      },
+      {
+        "output": 1,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      },
+      {
+        "output": 2,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 1024,
+        "max_abs_error": 0.0
+      },
+      {
+        "output": 3,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 1024,
+        "first_raw": "7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,"
+      },
+      {
+        "output": 1,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      },
+      {
+        "output": 2,
+        "sentinel_equal": 1024,
+        "first_raw": "7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,7e00,"
+      },
+      {
+        "output": 3,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "overflow",
+    "args": [
+      21,
+      1,
+      0,
+      31,
+      4,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 1024,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "overflow_sentinel_1",
+    "args": [
+      21,
+      1,
+      0,
+      31,
+      4,
+      1916,
+      2047,
+      0,
+      28,
+      1,
+      0
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 1024,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "before_sentinel_1",
+    "args": [
+      16,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      1,
+      0
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 0,
+        "max_abs_error": 3.27075195
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 1024,
+        "first_raw": "3555,3555,3555,3555,3555,3555,3555,3555,3555,3555,3555,3555,3555,3555,3555,3555,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "overflow_sentinel_2",
+    "args": [
+      21,
+      1,
+      0,
+      31,
+      4,
+      1916,
+      2047,
+      0,
+      28,
+      2,
+      0
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 1024,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "before_sentinel_2",
+    "args": [
+      16,
+      1,
+      0,
+      31,
+      1,
+      1916,
+      2047,
+      0,
+      28,
+      2,
+      0
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 0,
+        "max_abs_error": 3.83837891
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 1024,
+        "first_raw": "b955,b955,b955,b955,b955,b955,b955,b955,b955,b955,b955,b955,b955,b955,b955,b955,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "overflow_positive64",
+    "args": [
+      21,
+      1,
+      0,
+      31,
+      7,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 1024,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,7fff,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "overflow_negative64",
+    "args": [
+      21,
+      1,
+      0,
+      31,
+      8,
+      1916,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": true,
+    "exit": 1,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 1024,
+        "nonfinite": 1024,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "ffff,ffff,ffff,ffff,ffff,ffff,ffff,ffff,ffff,ffff,ffff,ffff,ffff,ffff,ffff,ffff,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": false,
+    "passed": null
+  },
+  {
+    "name": "baseline_final",
+    "args": [
+      0,
+      1,
+      0,
+      31,
+      1,
+      2047,
+      2047,
+      0,
+      28,
+      0,
+      0
+    ],
+    "exploratory": false,
+    "exit": 0,
+    "numeric": [
+      {
+        "output": 0,
+        "checked": 1024,
+        "bad": 0,
+        "nonfinite": 0,
+        "max_abs_error": 0.0
+      }
+    ],
+    "observed": [
+      {
+        "output": 0,
+        "sentinel_equal": 0,
+        "first_raw": "37c0,c018,2c00,40b0,bb00,bf70,3f30,3ca0,bee0,bca0,3f40,37c0,c018,2c00,40b0,bb00,"
+      }
+    ],
+    "rpc_completed": true,
+    "reference_match": true,
+    "passed": true
+  }
+]

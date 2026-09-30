@@ -1,0 +1,5 @@
+#include "AEEStdDef.idl"
+#include "remote.idl"
+interface hmx_probe : remote_handle64 {
+    AEEResult run(in int32 fd, in int32 bytes, in int32 mode);
+};

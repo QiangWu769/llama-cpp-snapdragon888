@@ -1,0 +1,42 @@
+{
+  "date": "2026-09-29",
+  "device": {
+    "model": "OnePlus 9 LE2115",
+    "soc": "Snapdragon 888 / SM8350",
+    "dsp": "Hexagon v68",
+    "android": "14"
+  },
+  "toolchain": {
+    "sdk": "6.6.0.0",
+    "tools": "19.0.07",
+    "ndk": "r26d",
+    "dsp_target": "-mv68 -mhmx"
+  },
+  "cases": 87,
+  "reference_passes": 53,
+  "arithmetic_passes": 49,
+  "transfer_passes": 4,
+  "compatibility_mismatches": [
+    "weight_negate",
+    "weight_negate_ones",
+    "four_bias_banks_roundtrip"
+  ],
+  "observation_cases": 31,
+  "arithmetic_values_checked": 58368,
+  "max_abs_error_in_passed_arithmetic": 0.0,
+  "dsp_binary": {
+    "local_dsp_sha256": "50451e24353d72d4bb8464da1667f90a876c052fbc86d0117600eb65a06f4605",
+    "phone_dsp_sha256": "50451e24353d72d4bb8464da1667f90a876c052fbc86d0117600eb65a06f4605",
+    "identical": true
+  },
+  "runtime_source_sha256": {
+    "dsp.c": "2167fed3b37b0285c48a88c3e2f937fb298566a78b7a186c020cdf6a3c7040eb",
+    "host.c": "d7f3765cd4d35a5019118e525dc1a3903288d2260a343242a028b18a169d6050",
+    "probe.h": "b5e370003d9508d8eed3a4aca53871d58b5879728c6f31dff05dbdb14411cb9d",
+    "hmx_probe.idl": "f335935c0ee6aedd7a958820feb3bc5080e372b9bf663595ecf9589b212914e1",
+    "CMakeLists.txt": "b244e6b6af1c79ffe74473f0de7cd0e4af4e1de9195abd6497d6e101144437b3",
+    "build.py": "d1fc3dab71d51a7918f74648968e8c773afffae2fb5fe3f63ce12cb4da7c0159",
+    "run.py": "44d4a06f8aa5916d27cf407d78fa42bb473b504e64a3a792a726cba1e6343f62"
+  },
+  "note": "No compiled binaries, SDK headers, credentials or device identifiers are distributed."
+}

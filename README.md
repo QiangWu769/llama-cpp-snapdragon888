@@ -56,6 +56,12 @@ HTP automatically registers as an ACCEL backend in this fork. `-ngl 0` or `--dev
 
 ## Validated results
 
+**New: [HMX feature validation against the V81 manual](docs/HMX-FEATURES.md).**
+87 independent Snapdragon 888 probes establish partial K, K=1024 deep
+matrices, 64-channel weight deep, shifted windows, accumulator control and
+legacy bias/ReLU behavior. The report also retains incompatible V81 controls
+and the modern CVT architecture gates, with standalone source and raw logs.
+
 The final vector implementation passed **40 real-device FastRPC operator cases**:
 
 | Validation | Result |

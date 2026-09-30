@@ -1,0 +1,418 @@
+[
+  {
+    "name": "matrix-v68-0",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_KIND=0",
+      "<experiment>/compile-probes/matrix/compile_probe.c",
+      "-o",
+      "<experiment>/logs/compile/matrix-v68-0.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "matrix-v68-1",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_KIND=1",
+      "<experiment>/compile-probes/matrix/compile_probe.c",
+      "-o",
+      "<experiment>/logs/compile/matrix-v68-1.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "matrix-v68-2",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_KIND=2",
+      "<experiment>/compile-probes/matrix/compile_probe.c",
+      "-o",
+      "<experiment>/logs/compile/matrix-v68-2.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "matrix-v68-3",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_KIND=3",
+      "<experiment>/compile-probes/matrix/compile_probe.c",
+      "-o",
+      "<experiment>/logs/compile/matrix-v68-3.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "matrix-v68-4",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_KIND=4",
+      "<experiment>/compile-probes/matrix/compile_probe.c",
+      "-o",
+      "<experiment>/logs/compile/matrix-v68-4.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "matrix-v68-5",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_KIND=5",
+      "<experiment>/compile-probes/matrix/compile_probe.c",
+      "-o",
+      "<experiment>/logs/compile/matrix-v68-5.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "legacy-v68-0",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=0",
+      "<experiment>/compile-probes/epilogue/compile_legacy.c",
+      "-o",
+      "<experiment>/logs/compile/legacy-v68-0.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "legacy-v68-1",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=1",
+      "<experiment>/compile-probes/epilogue/compile_legacy.c",
+      "-o",
+      "<experiment>/logs/compile/legacy-v68-1.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "legacy-v68-2",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=2",
+      "<experiment>/compile-probes/epilogue/compile_legacy.c",
+      "-o",
+      "<experiment>/logs/compile/legacy-v68-2.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "legacy-v68-3",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=3",
+      "<experiment>/compile-probes/epilogue/compile_legacy.c",
+      "-o",
+      "<experiment>/logs/compile/legacy-v68-3.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "legacy-v68-4",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=4",
+      "<experiment>/compile-probes/epilogue/compile_legacy.c",
+      "-o",
+      "<experiment>/logs/compile/legacy-v68-4.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "legacy-v68-5",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=5",
+      "<experiment>/compile-probes/epilogue/compile_legacy.c",
+      "-o",
+      "<experiment>/logs/compile/legacy-v68-5.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "legacy-v68-6",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=6",
+      "<experiment>/compile-probes/epilogue/compile_legacy.c",
+      "-o",
+      "<experiment>/logs/compile/legacy-v68-6.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "legacy-v68-7",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=7",
+      "<experiment>/compile-probes/epilogue/compile_legacy.c",
+      "-o",
+      "<experiment>/logs/compile/legacy-v68-7.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "legacy-v68-8",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=8",
+      "<experiment>/compile-probes/epilogue/compile_legacy.c",
+      "-o",
+      "<experiment>/logs/compile/legacy-v68-8.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "legacy-v68-9",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=9",
+      "<experiment>/compile-probes/epilogue/compile_legacy.c",
+      "-o",
+      "<experiment>/logs/compile/legacy-v68-9.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "legacy-v68-10",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=10",
+      "<experiment>/compile-probes/epilogue/compile_legacy.c",
+      "-o",
+      "<experiment>/logs/compile/legacy-v68-10.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "legacy-v68-11",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=11",
+      "<experiment>/compile-probes/epilogue/compile_legacy.c",
+      "-o",
+      "<experiment>/logs/compile/legacy-v68-11.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "legacy-v68-12",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=12",
+      "<experiment>/compile-probes/epilogue/compile_legacy.c",
+      "-o",
+      "<experiment>/logs/compile/legacy-v68-12.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "legacy-v68-13",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=13",
+      "<experiment>/compile-probes/epilogue/compile_legacy.c",
+      "-o",
+      "<experiment>/logs/compile/legacy-v68-13.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "modern-v68-0",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=0",
+      "<experiment>/compile-probes/epilogue/compile_modern.c",
+      "-o",
+      "<experiment>/logs/compile/modern-v68-0.o"
+    ],
+    "exit": 1,
+    "diagnostic": "<experiment>/compile-probes/epilogue/compile_modern.c:13:22: error: instruction requires: -mv73 or higher\n   13 |     __asm__ volatile(\"cvt.hf = acc(%0)\" :: \"r\"(control) : \"memory\");\n      |                      ^\n<inline asm>:1:2: note: instantiated into assembly here\n    1 |         cvt.hf = acc(r1)\n      |         ^\n1 error generated.\n"
+  },
+  {
+    "name": "modern-v68-1",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv68",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=1",
+      "<experiment>/compile-probes/epilogue/compile_modern.c",
+      "-o",
+      "<experiment>/logs/compile/modern-v68-1.o"
+    ],
+    "exit": 1,
+    "diagnostic": "<experiment>/compile-probes/epilogue/compile_modern.c:15:22: error: instruction requires: -mv73 or higher\n   15 |     __asm__ volatile(\"mxmem(%0,%1) = cvt\" :: \"r\"(out), \"r\"(control) : \"memory\");\n      |                      ^\n<inline asm>:1:2: note: instantiated into assembly here\n    1 |         mxmem(r0,r1) = cvt\n      |         ^\n1 error generated.\n"
+  },
+  {
+    "name": "modern-v73-0",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv73",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=0",
+      "<experiment>/compile-probes/epilogue/compile_modern.c",
+      "-o",
+      "<experiment>/logs/compile/modern-v73-0.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "modern-v73-1",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv73",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=1",
+      "<experiment>/compile-probes/epilogue/compile_modern.c",
+      "-o",
+      "<experiment>/logs/compile/modern-v73-1.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "modern-v81-0",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv81",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=0",
+      "<experiment>/compile-probes/epilogue/compile_modern.c",
+      "-o",
+      "<experiment>/logs/compile/modern-v81-0.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "name": "modern-v81-1",
+    "command": [
+      "<HEXAGON_SDK_ROOT>/tools/HEXAGON_Tools/19.0.07/Tools/bin/hexagon-clang",
+      "-mv81",
+      "-mhmx",
+      "-O2",
+      "-c",
+      "-DPROBE_CASE=1",
+      "<experiment>/compile-probes/epilogue/compile_modern.c",
+      "-o",
+      "<experiment>/logs/compile/modern-v81-1.o"
+    ],
+    "exit": 0,
+    "diagnostic": ""
+  }
+]

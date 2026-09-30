@@ -1,0 +1,9 @@
+CONFIG feature=3 tiles=2 start=0 stop=31 pattern=1 act=0xf7c store=0x7ff offset=0 mask=28 variant=0 bias=0
+unsigned_PD_status=0x0
+open_status=0x0
+mapping_status=0x0
+RPC status=0x0 stage=130 result=0 lock=0 total_vtcm=4194304 outputs=1 guard_bad=0
+CLEANUP unlock=0 release=0 power_down=0
+NUMERIC output=0 checked=1024 bad=0 nonfinite=0 max_abs_error=0 min=-5.25 max=5.625 samples=1.390625,-4.375,-0.859375,5.234375,-1.5625,-4.234375,2.375,4.171875,-3.484375,-3.0625,4.40625,1.390625,-4.375,-0.859375,5.234375,-1.5625,
+RAW output=0 sentinel_equal=0 data=3d90,c460,bae0,453c,be40,c43c,40c0,442c,c2f8,c220,4468,3d90,c460,bae0,453c,be40,
+FEATURE_TEST PASS failures=0
