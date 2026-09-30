@@ -1,0 +1,26 @@
+{
+  "host_recorded_utc": "2026-09-30T00:37:16.571698+00:00",
+  "dsp_sha256": "d4f3d9516c00509300f903a0505301d77385d7829c9e1028804d398ccea46db5",
+  "phone_and_host_binary_identical": true,
+  "phone": [
+    "LE2115",
+    "lahaina",
+    "SM8350",
+    "14"
+  ],
+  "hmx_symbol_lines": [
+    "41: 00000000     0 NOTYPE  WEAK   DEFAULT   UND compute_resource_hmx_lock",
+    "59: 00000000     0 NOTYPE  WEAK   DEFAULT   UND compute_resource_hmx_unlock",
+    "169: 00000000     0 NOTYPE  WEAK   DEFAULT   UND compute_resource_hmx_lock",
+    "173: 00000000     0 NOTYPE  WEAK   DEFAULT   UND compute_resource_hmx_unlock"
+  ],
+  "hmx_instruction_lines": 54,
+  "gpu_used_by_backend": false,
+  "sdk": "6.6.0.0",
+  "hexagon_tools": "19.0.07",
+  "ndk": "r26d",
+  "source_bases": {
+    "llama.cpp-npu": "57e34a34e0293894bd026280875703561c0106ef",
+    "htp-ops-lib": "85eb88edcafd35afff1a43606a4c47eec9a0ca0b"
+  }
+}

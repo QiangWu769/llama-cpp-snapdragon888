@@ -1,0 +1,63 @@
+name: Portable host tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host-tests:
+    name: Numerical and layout checks (host CPU)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+        working-directory: htp-ops-lib
+    env:
+      CC: clang
+      SANITIZERS: undefined
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Check host toolchain and binary16 support
+        run: |
+          clang --version
+          python3 --version
+          clang -std=c11 -Wall -Wextra -Werror -fsanitize=undefined \
+            -fno-sanitize-recover=all -x c -o "$RUNNER_TEMP/fp16-storage" - <<'C'
+          _Static_assert(sizeof(__fp16) == 2, "binary16 storage required");
+          int main(void) {
+            volatile float input = 1.5f;
+            __fp16 half = (__fp16) input;
+            return (float) half == 1.5f ? 0 : 1;
+          }
+          C
+          "$RUNNER_TEMP/fp16-storage"
+
+      - name: Scalar matmul reference tests
+        run: sh tests/v68/run_host_tests.sh
+
+      - name: Portable attention tests
+        run: sh tests/v68/run_attention_tests.sh
+
+      - name: HMX attention algorithm and tile layout tests
+        run: sh tests/v68/run_attention_hmx_tests.sh
+
+      - name: FP16 and FP32 conversion tests
+        run: sh tests/v68/run_hvx_conversion_tests.sh
+
+      - name: Integer dequantization tests
+        run: sh tests/v68/run_integer_dequant_tests.sh

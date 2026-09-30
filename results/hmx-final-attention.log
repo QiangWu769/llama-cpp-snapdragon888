@@ -1,0 +1,20 @@
+V68_RPC_TEST reference=full-softmax, HMX tolerance suite=attention (verify DSP dispatch logs separately)
+PASS ATTENTION Q=1 KV=65 H=14 KH=2 D=64 mask=none elements=896 bad=0 max_abs_error=0.00019416958 rmse=7.9160067e-05 max_error_over_bound=0.064723 atol=0.003 rtol=0
+TIMING ATTENTION Q=1 KV=65 H=14 KH=2 D=64 mask=none rpc_wall_ms=0.379
+PASS ATTENTION Q=1 KV=65 H=14 KH=2 D=64 mask=causal+finite elements=896 bad=0 max_abs_error=0.00020872056 rmse=9.2914583e-05 max_error_over_bound=0.069574 atol=0.003 rtol=0
+TIMING ATTENTION Q=1 KV=65 H=14 KH=2 D=64 mask=causal+finite rpc_wall_ms=0.367
+PASS ATTENTION Q=1 KV=65 H=14 KH=2 D=64 mask=all-masked-row elements=896 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.003 rtol=0
+TIMING ATTENTION Q=1 KV=65 H=14 KH=2 D=64 mask=all-masked-row rpc_wall_ms=0.333
+PASS ATTENTION Q=5 KV=67 H=14 KH=2 D=64 mask=none elements=4480 bad=0 max_abs_error=0.00028733909 rmse=8.2737561e-05 max_error_over_bound=0.09578 atol=0.003 rtol=0
+TIMING ATTENTION Q=5 KV=67 H=14 KH=2 D=64 mask=none rpc_wall_ms=0.877
+PASS ATTENTION Q=5 KV=67 H=14 KH=2 D=64 mask=causal+finite elements=4480 bad=0 max_abs_error=0.00034894049 rmse=9.1259314e-05 max_error_over_bound=0.11631 atol=0.003 rtol=0
+TIMING ATTENTION Q=5 KV=67 H=14 KH=2 D=64 mask=causal+finite rpc_wall_ms=0.978
+PASS ATTENTION Q=5 KV=67 H=14 KH=2 D=64 mask=all-masked-row elements=4480 bad=0 max_abs_error=0.00034894049 rmse=8.0220317e-05 max_error_over_bound=0.11631 atol=0.003 rtol=0
+TIMING ATTENTION Q=5 KV=67 H=14 KH=2 D=64 mask=all-masked-row rpc_wall_ms=0.815
+PASS ATTENTION Q=33 KV=33 H=2 KH=2 D=64 mask=none elements=4224 bad=0 max_abs_error=0.00035434961 rmse=0.00012706704 max_error_over_bound=0.11812 atol=0.003 rtol=0
+TIMING ATTENTION Q=33 KV=33 H=2 KH=2 D=64 mask=none rpc_wall_ms=0.654
+PASS ATTENTION Q=33 KV=33 H=2 KH=2 D=64 mask=causal+finite elements=4224 bad=0 max_abs_error=0.00055977702 rmse=0.00015432777 max_error_over_bound=0.18659 atol=0.003 rtol=0
+TIMING ATTENTION Q=33 KV=33 H=2 KH=2 D=64 mask=causal+finite rpc_wall_ms=0.650
+PASS ATTENTION Q=33 KV=33 H=2 KH=2 D=64 mask=all-masked-row elements=4224 bad=0 max_abs_error=0.00055977702 rmse=0.00015432777 max_error_over_bound=0.18659 atol=0.003 rtol=0
+TIMING ATTENTION Q=33 KV=33 H=2 KH=2 D=64 mask=all-masked-row rpc_wall_ms=0.652
+V68_RPC_TEST PASS failures=0 cases=9

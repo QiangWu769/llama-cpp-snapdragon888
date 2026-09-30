@@ -20,31 +20,43 @@ ggml_backend_htp_context::ggml_backend_htp_context() : mapper(3 * 1024UL * 1024 
     // rpcmem_init & rpcmem_deinit are actually not required on modern Hexagon processors
     rpcmem_init();
 
-    ops_dl_handle = dlopen(HTP_OPS_DL_PATH, RTLD_LAZY | RTLD_LOCAL);
-    if (ops_dl_handle != nullptr) {
-        using open_session_fn_type = int(int, int);
-        using init_htp_ops_fn_type = void();
-
-        auto open_session = reinterpret_cast<open_session_fn_type *>(dlsym(ops_dl_handle, "open_dsp_session"));
-        auto init_htp_ops = reinterpret_cast<init_htp_ops_fn_type *>(dlsym(ops_dl_handle, "init_htp_backend"));
-        GGML_ASSERT(open_session && init_htp_ops);
-
-        int err = open_session(CDSP_DOMAIN_ID, 1);
-        if (err == 0) {
-            init_htp_ops();
-
-            if (init_message_channel() == 0) {
-                ops_backend_initialized = true;
-            }
-        } else {
-            fprintf(stderr, "Failed to open remote session on Hexagon NPU (0x%x)\n", err);
-        }
-    } else {
-        fprintf(stderr, "Cannot load HTP ops backend library, all OPs will fallback to CPU implementation\n");
+    ops_dl_handle = dlopen(HTP_OPS_DL_PATH, RTLD_NOW | RTLD_LOCAL);
+    if (!ops_dl_handle) {
+        GGML_ABORT("HTP: cannot load %s: %s", HTP_OPS_DL_PATH, dlerror());
     }
+
+    using open_session_fn_type = int(int, int);
+    using get_handle_fn_type = uint64_t();
+    using init_backend_fn_type = int(uint64_t);
+
+    auto open_session = reinterpret_cast<open_session_fn_type *>(dlsym(ops_dl_handle, "open_dsp_session"));
+    auto get_handle = reinterpret_cast<get_handle_fn_type *>(dlsym(ops_dl_handle, "get_global_handle"));
+    // The convenience init_htp_backend() wrapper discards the RPC result. Call
+    // the generated stub directly so a failed DSP initialization is observable.
+    auto init_backend = reinterpret_cast<init_backend_fn_type *>(dlsym(ops_dl_handle, "htp_ops_init_backend"));
+    if (!open_session || !get_handle || !init_backend) {
+        GGML_ABORT("HTP: %s is missing open_dsp_session, get_global_handle, or htp_ops_init_backend", HTP_OPS_DL_PATH);
+    }
+
+    int err = open_session(CDSP_DOMAIN_ID, 1);
+    if (err != 0) {
+        GGML_ABORT("HTP: opening the DSP session failed: status=%d", err);
+    }
+    err = init_backend(get_handle());
+    if (err != 0) {
+        GGML_ABORT("HTP: DSP backend initialization failed: status=0x%x", err);
+    }
+    err = init_message_channel();
+    if (err != 0) {
+        GGML_ABORT("HTP: DSP message channel initialization failed: status=0x%x", err);
+    }
+    ops_backend_initialized = true;
+    fprintf(stderr, "HTP DSP session ready: domain=%d unsigned=1 library=%s transport=FastRPC/message-channel\n",
+            CDSP_DOMAIN_ID, HTP_OPS_DL_PATH);
 
     if (getenv("SKIP_HTP_OPS")) {
         skip_htp_ops = true;
+        fprintf(stderr, "HTP: SKIP_HTP_OPS is set; permuted layer weights cannot use ordinary CPU matmul\n");
     }
 }
 
@@ -60,7 +72,10 @@ ggml_backend_htp_context::~ggml_backend_htp_context() {
 
             close_session();
             // release message channel
-            fastrpc_munmap(CDSP_DOMAIN_ID, msg_chan_fd, ops_msg_chan, MAX_MSG_SIZE);
+            const int err = fastrpc_munmap(CDSP_DOMAIN_ID, msg_chan_fd, ops_msg_chan, MAX_MSG_SIZE);
+            if (err != 0) {
+                fprintf(stderr, "HTP: message channel unmap failed: status=0x%x\n", err);
+            }
             rpcmem_free(ops_msg_chan);
             ops_backend_initialized = false;
         }
@@ -77,22 +92,27 @@ int ggml_backend_htp_context::init_message_channel() {
     auto create_msg_channel =
         reinterpret_cast<create_msg_channel_fn_type *>(dlsym(ops_dl_handle, "create_htp_message_channel"));
     if (!create_msg_channel) {
+        fprintf(stderr, "HTP: missing create_htp_message_channel in %s\n", HTP_OPS_DL_PATH);
         return -1;
     }
 
     ops_msg_chan = rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_FLAG_UNCACHED, MAX_MSG_SIZE);
     if (!ops_msg_chan) {
+        fprintf(stderr, "HTP: rpcmem allocation failed for the message channel\n");
         return -1;
     }
+    memset(ops_msg_chan, 0, MAX_MSG_SIZE);
 
     msg_chan_fd = rpcmem_to_fd(ops_msg_chan);
     if (msg_chan_fd < 0) {
-        return -1;
+        fprintf(stderr, "HTP: rpcmem_to_fd failed for the message channel: %d\n", msg_chan_fd);
+        return msg_chan_fd;
     }
 
     int err = fastrpc_mmap(CDSP_DOMAIN_ID, msg_chan_fd, ops_msg_chan, 0, MAX_MSG_SIZE, FASTRPC_MAP_FD);
     if (err) {
-        return -1;
+        fprintf(stderr, "HTP: fastrpc_mmap failed for the message channel: 0x%x\n", err);
+        return err;
     }
 
     return create_msg_channel(msg_chan_fd, MAX_MSG_SIZE);
@@ -271,6 +291,7 @@ static enum ggml_status ggml_backend_htp_graph_compute(ggml_backend_t backend, s
             ctx->work_size = 0;
             return GGML_STATUS_ALLOC_FAILED;
         }
+        ctx->work_size = cplan.work_size;
     }
     cplan.work_data = (uint8_t *) ctx->work_data;
 
@@ -372,6 +393,22 @@ static ggml_backend_buffer_type_t ggml_backend_htp_device_get_buffer_type(ggml_b
 }
 
 static bool ggml_backend_htp_device_supports_op(ggml_backend_dev_t dev, const struct ggml_tensor * op) {
+    if ((op->op == GGML_OP_GET_ROWS || op->op == GGML_OP_MUL_MAT) && op->src[0]) {
+        // The loader's support probe preserves the original weight as src[0].
+        // These two ordinary-layout weights are consumed on CPU, so keep them
+        // in normal CPU memory rather than uncached, size-limited RPCMEM.
+        const char * name = ggml_get_name(op->src[0]);
+        while (name && *name) {
+            const char * end = strchr(name, '#');
+            const size_t length = end ? static_cast<size_t>(end - name) : strlen(name);
+            if ((length == strlen("token_embd.weight") && memcmp(name, "token_embd.weight", length) == 0) ||
+                (length == strlen("output.weight") && memcmp(name, "output.weight", length) == 0)) {
+                return false;
+            }
+            // Also recognize scheduler copies: "<backend>#<weight>#<copy>".
+            name = end ? end + 1 : nullptr;
+        }
+    }
     auto * cpu_dev = ggml_backend_reg_dev_get(ggml_backend_cpu_reg(), 0);
     return ggml_backend_dev_supports_op(cpu_dev, op);
 
@@ -436,11 +473,25 @@ static ggml_backend_dev_t ggml_backend_htp_reg_get_device(ggml_backend_reg_t reg
     return &ggml_backend_htp_device;
 }
 
+static void ggml_backend_htp_set_n_threads(ggml_backend_t backend, int n_threads) {
+    GGML_ASSERT(ggml_backend_is_htp(backend) && n_threads > 0);
+    auto * ctx = static_cast<ggml_backend_htp_context *>(backend->context);
+    ctx->n_threads = n_threads;
+}
+
+static void * ggml_backend_htp_reg_get_proc_address(ggml_backend_reg_t reg, const char * name) {
+    GGML_UNUSED(reg);
+    if (strcmp(name, "ggml_backend_set_n_threads") == 0) {
+        return reinterpret_cast<void *>(ggml_backend_htp_set_n_threads);
+    }
+    return nullptr;
+}
+
 static const struct ggml_backend_reg_i ggml_backend_htp_reg_i = {
     /* .get_name         = */ ggml_backend_htp_reg_get_name,
     /* .get_device_count = */ ggml_backend_htp_reg_get_device_count,
     /* .get_device       = */ ggml_backend_htp_reg_get_device,
-    /* .get_proc_address = */ nullptr,
+    /* .get_proc_address = */ ggml_backend_htp_reg_get_proc_address,
 };
 
 ggml_backend_reg_t ggml_backend_htp_reg(void) {

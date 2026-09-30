@@ -6,7 +6,7 @@
 static int power_ctx;
 
 // TODO(hzx): maybe we should set params according to SoC model
-void power_setup() {
+int power_setup() {
   int err;
 
   HAP_power_request_t req;
@@ -34,6 +34,7 @@ void power_setup() {
     FARF(ALWAYS, "HAP_power_set DCVS v3 failed with return code 0x%x", err);
   }
 
+#if HTP_USE_HMX
   // power on HMX
   // NOTE(hzx): should we use v2 to set HMX clock frequency?
   memset(&req, 0, sizeof(req));
@@ -43,16 +44,21 @@ void power_setup() {
   err = HAP_power_set(&power_ctx, &req);
   if (err != AEE_SUCCESS) {
     FARF(ALWAYS, "HAP_power_set HMX failed with return code 0x%x", err);
+    return err;
   }
+#endif
+  return 0;
 }
 
 void power_reset() {
   HAP_power_request_t req;
 
+#if HTP_USE_HMX
   memset(&req, 0, sizeof(req));
   req.type         = HAP_power_set_HMX;
   req.hmx.power_up = FALSE;
   HAP_power_set(&power_ctx, &req);
+#endif
 
   HAP_power_set_dcvs_v3_init(&req);
   HAP_power_set(&power_ctx, &req);

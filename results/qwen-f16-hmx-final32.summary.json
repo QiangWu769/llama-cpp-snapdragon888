@@ -1,0 +1,15 @@
+{
+  "exit": 0,
+  "generated_stdout": " Paris. It is the largest city in Europe and the second largest in the world. It is also the capital of France, the second largest country in Europe,\n\n",
+  "dsp_opcode_counts": {
+    "1": 5376,
+    "5": 768
+  },
+  "performance": [
+    "llama_perf_sampler_print:    sampling time =      20.35 ms /    37 runs   (    0.55 ms per token,  1818.27 tokens per second)",
+    "llama_perf_context_print:        load time =    1548.16 ms",
+    "llama_perf_context_print: prompt eval time =     419.27 ms /     5 tokens (   83.85 ms per token,    11.93 tokens per second)",
+    "llama_perf_context_print:        eval time =    7773.93 ms /    31 runs   (  250.77 ms per token,     3.99 tokens per second)",
+    "llama_perf_context_print:       total time =    9365.51 ms /    36 tokens"
+  ]
+}

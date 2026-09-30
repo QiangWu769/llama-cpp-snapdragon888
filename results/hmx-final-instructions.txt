@@ -1,0 +1,54 @@
+    81a8:	ff c3 02 92	9202c3ff { 	bias = mxmem(r2) } 
+    81ac:	13 c0 e0 a6	a6e0c013 { 	mxclracc.hf } 
+    81b4:	e2 42 03 92	920342e2 { 	activation.hf = mxmem(r3,r2):deep
+    81b8:	ef e2 11 92	9211e2ef   	weight.hf = mxmem(r17,r2) } 
+    81c4:	04 e3 e2 a6	a6e2e304 { 	mxmem(r2,r3):after.hf = acc } 
+    81c8:	13 c0 e0 a6	a6e0c013 { 	mxclracc.hf } 
+    8590:	ff c3 02 92	9202c3ff { 	bias = mxmem(r2) } 
+    8594:	13 c0 e0 a6	a6e0c013 { 	mxclracc.hf } 
+    85a0:	e2 44 02 92	920244e2 { 	activation.hf = mxmem(r2,r4):deep
+    85a4:	ef e4 03 92	9203e4ef   	weight.hf = mxmem(r3,r4) } 
+    85ac:	04 e4 e2 a6	a6e2e404 { 	mxmem(r2,r4):after.hf = acc } 
+    85b0:	13 c0 e0 a6	a6e0c013 { 	mxclracc.hf } 
+    9c6c:	13 c0 e0 a6	a6e0c013 { 	mxclracc.hf } 
+    9c74:	ff c3 02 92	9202c3ff { 	bias = mxmem(r2) } 
+    9cf0:	e2 49 1c 92	921c49e2 { 	activation.hf = mxmem(r28,r9):deep
+    9cf4:	ef e9 00 92	9200e9ef   	weight.hf = mxmem(r0,r9) } 
+    9d20:	e2 49 0e 92	920e49e2 { 	activation.hf = mxmem(r14,r9):deep
+    9d24:	ef e9 0f 92	920fe9ef   	weight.hf = mxmem(r15,r9) } 
+    9d34:	04 fb e8 a6	a6e8fb04 { 	mxmem(r8,r27):after.hf = acc } 
+    9d38:	13 c0 e0 a6	a6e0c013 { 	mxclracc.hf } 
+    a1d8:	13 c0 e0 a6	a6e0c013 { 	mxclracc.hf } 
+    a1dc:	ff c3 15 92	9215c3ff { 	bias = mxmem(r21) } 
+    a264:	e2 4c 00 92	92004ce2 { 	activation.hf = mxmem(r0,r12):deep
+    a268:	ef ec 01 92	9201ecef   	weight.hf = mxmem(r1,r12) } 
+    a294:	e2 4c 0f 92	920f4ce2 { 	activation.hf = mxmem(r15,r12):deep
+    a298:	ef ec 1c 92	921cecef   	weight.hf = mxmem(r28,r12) } 
+    a2a8:	04 e5 e9 a6	a6e9e504 { 	mxmem(r9,r5):after.hf = acc } 
+    a2ac:	13 c0 e0 a6	a6e0c013 { 	mxclracc.hf } 
+    ad28:	13 c0 e0 a6	a6e0c013 { 	mxclracc.hf } 
+    ad30:	ff c3 02 92	9202c3ff { 	bias = mxmem(r2) } 
+    adb0:	e2 49 1c 92	921c49e2 { 	activation.hf = mxmem(r28,r9):deep
+    adb4:	ef e9 00 92	9200e9ef   	weight.hf = mxmem(r0,r9) } 
+    ade0:	e2 49 0e 92	920e49e2 { 	activation.hf = mxmem(r14,r9):deep
+    ade4:	ef e9 0f 92	920fe9ef   	weight.hf = mxmem(r15,r9) } 
+    adf4:	04 fb e8 a6	a6e8fb04 { 	mxmem(r8,r27):after.hf = acc } 
+    adf8:	13 c0 e0 a6	a6e0c013 { 	mxclracc.hf } 
+    b310:	13 c0 e0 a6	a6e0c013 { 	mxclracc.hf } 
+    b318:	ff c3 02 92	9202c3ff { 	bias = mxmem(r2) } 
+    b34c:	e2 58 07 92	920758e2 { 	activation.hf = mxmem(r7,r24):deep
+    b350:	ef f8 17 92	9217f8ef   	weight.hf = mxmem(r23,r24) } 
+    b358:	e2 42 05 92	920542e2 { 	activation.hf = mxmem(r5,r2):deep
+    b35c:	ef e2 06 92	9206e2ef   	weight.hf = mxmem(r6,r2) } 
+    b360:	04 f8 e7 a6	a6e7f804 { 	mxmem(r7,r24):after.hf = acc } 
+    b364:	13 c0 e0 a6	a6e0c013 { 	mxclracc.hf } 
+    b524:	13 c0 e0 a6	a6e0c013 { 	mxclracc.hf } 
+    b528:	ff c3 15 92	9215c3ff { 	bias = mxmem(r21) } 
+    b578:	e2 45 09 92	920945e2 { 	activation.hf = mxmem(r9,r5):deep
+    b57c:	ef e5 11 92	9211e5ef   	weight.hf = mxmem(r17,r5) } 
+    b5dc:	e2 4d 01 92	92014de2 { 	activation.hf = mxmem(r1,r13):deep
+    b5e0:	ef ed 0a 92	920aedef   	weight.hf = mxmem(r10,r13) } 
+    b60c:	e2 4d 1c 92	921c4de2 { 	activation.hf = mxmem(r28,r13):deep
+    b610:	ef ed 00 92	9200edef   	weight.hf = mxmem(r0,r13) } 
+    b614:	04 e5 e9 a6	a6e9e504 { 	mxmem(r9,r5):after.hf = acc } 
+    b618:	13 c0 e0 a6	a6e0c013 { 	mxclracc.hf } 

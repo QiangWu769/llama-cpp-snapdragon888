@@ -12161,6 +12161,11 @@ static void ggml_compute_forward(struct ggml_compute_params * params, struct ggm
                 if (htp_ops_support_op(tensor)) {
                     htp_ops_compute_op(params, tensor);
                 } else {
+                    if (htp_ops_has_permuted_weight(tensor)) {
+                        GGML_ABORT("HTP: cannot execute permuted weight %s on DSP; CPU fallback would corrupt results. "
+                                   "Check the DSP library, tensor shape/layout, and SKIP_HTP_OPS. "
+                                   "Use a separately converted ordinary GGUF for CPU inference.", tensor->src[0]->name);
+                    }
                     ggml_compute_forward_mul_mat(params, tensor);
                 }
             } break;

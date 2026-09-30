@@ -1,0 +1,10 @@
+V68_RPC_TEST reference=half-input/half-output suite=pipeline (verify DSP dispatch logs separately)
+PASS Q8_0-MATMUL M=128 K=896 N=896 elements=114688 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING Q8_0-MATMUL M=128 K=896 N=896 reference_ms=179.236 rpc_wall_ms=2.979 reference_k_round_chunk=0
+PASS Q8_0-MATMUL M=129 K=1568 N=1056 elements=136224 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING Q8_0-MATMUL M=129 K=1568 N=1056 reference_ms=1968.326 rpc_wall_ms=6.335 reference_k_round_chunk=512
+PASS IQ4_NL-MATMUL M=128 K=896 N=896 elements=114688 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING IQ4_NL-MATMUL M=128 K=896 N=896 reference_ms=162.085 rpc_wall_ms=2.960 reference_k_round_chunk=0
+PASS IQ4_NL-MATMUL M=129 K=1568 N=1056 elements=136224 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING IQ4_NL-MATMUL M=129 K=1568 N=1056 reference_ms=1967.712 rpc_wall_ms=6.097 reference_k_round_chunk=512
+V68_RPC_TEST PASS failures=0 cases=4

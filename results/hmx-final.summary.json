@@ -1,0 +1,20 @@
+{
+  "full": {
+    "exit": 0,
+    "passed": true,
+    "cases": 27,
+    "max_abs_error": 0.0
+  },
+  "pipeline": {
+    "exit": 0,
+    "passed": true,
+    "cases": 4,
+    "max_abs_error": 0.0
+  },
+  "attention": {
+    "exit": 0,
+    "passed": true,
+    "cases": 9,
+    "max_abs_error": 0.00055977702
+  }
+}

@@ -1,3 +1,5 @@
+> Snapdragon 888 / Hexagon v68 adaptation: see the [root README](../README.md). The upstream documentation below is preserved for provenance.
+
 # llama.cpp with custom Hexagon NPU backend
 
 This is the code repository for the paper [Scaling LLM Test-Time Compute with Mobile NPU on Smartphones](https://arxiv.org/abs/2509.23324), which supports using the Hexagon NPU on Qualcomm Snapdragon SoCs for LLM inference. This project is primarily a research prototype and is not intended for production environments.

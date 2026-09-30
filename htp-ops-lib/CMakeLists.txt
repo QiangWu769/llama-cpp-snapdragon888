@@ -23,6 +23,13 @@ set(common_incs
 )
 include_directories(${common_incs})
 
+# Keep the established v68 HVX path available; HMX uses a legacy ISA branch.
+set(HTP_HMX_DEFAULT ON)
+if(HEXAGON_ARCH STREQUAL "v68")
+    set(HTP_HMX_DEFAULT OFF)
+endif()
+option(HTP_USE_HMX "Build FP16 HMX kernels (legacy ISA on v68)" ${HTP_HMX_DEFAULT})
+
 if(${OS_TYPE} MATCHES "HLOS")
     # HLOS dynamic binary
     add_library(htp_ops SHARED 
@@ -60,6 +67,11 @@ if(${OS_TYPE} MATCHES "HLOS")
     # Copy binaries from ship to CMAKE_CURRENT_BINARY_DIR folder
     copy_binaries(htp_ops_test htp_ops)
 
+    add_executable(htp_v68_test src/host/v68_test.c)
+    set_common_compile_and_link_options(htp_v68_test)
+    target_link_libraries(htp_v68_test htp_ops m)
+    copy_binaries(htp_v68_test)
+
 else()
 
     # Shared skel library
@@ -67,24 +79,35 @@ else()
         ${CMAKE_CURRENT_BINARY_DIR}/htp_ops_skel.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/commu.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/power.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/hmx_mgr.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/worker_pool.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/mmap_mgr.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/op_executor.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/op_tests.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/vtcm_mgr.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/ops/flash_attn_sp_hdim.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/ops/flash_attn.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/ops/mat_mul.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/ops/precompute_table.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/ops/rms_norm.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dsp/ops/mm_benchmark.c
     )
     build_idl(include/htp_ops.idl htp_ops_skel)
 
     # Enable HMX inline assembly
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mhmx")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mhmx")
+    if(HTP_USE_HMX)
+        target_compile_definitions(htp_ops_skel PRIVATE HTP_USE_HMX=1)
+        target_compile_options(htp_ops_skel PRIVATE -mhmx)
+        if(HEXAGON_ARCH STREQUAL "v68")
+            target_compile_definitions(htp_ops_skel PRIVATE HTP_HMX_V68=1)
+            message(STATUS "HTP backend: v68 legacy FP16 HMX kernels")
+        endif()
+        target_sources(htp_ops_skel PRIVATE
+            src/dsp/hmx_mgr.c src/dsp/vtcm_mgr.cc
+            src/dsp/ops/flash_attn.c
+            src/dsp/ops/mat_mul.c)
+        if(NOT HEXAGON_ARCH STREQUAL "v68")
+            target_sources(htp_ops_skel PRIVATE src/dsp/ops/flash_attn_sp_hdim.c
+                src/dsp/op_tests.cc src/dsp/ops/precompute_table.c src/dsp/ops/mm_benchmark.c)
+        endif()
+    else()
+        target_compile_definitions(htp_ops_skel PRIVATE HTP_USE_HMX=0)
+        target_sources(htp_ops_skel PRIVATE
+            src/dsp/ops/mat_mul_v68.c src/dsp/ops/flash_attn_v68.c)
+        message(STATUS "HTP backend: v68 HVX kernels (no FP16 HMX)")
+    endif()
 
     # Link C++ libraries
     target_link_libraries(htp_ops_skel ${HEXAGON_LIB_DIR}/${HEXAGON_ARCH}/G0/pic/libc++abi.so.1)

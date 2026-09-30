@@ -1,7 +1,9 @@
 #include <assert.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "dsp/dma_utils.h"
 #include "dsp/hmx_mgr.h"
@@ -17,10 +19,25 @@
 #include "HAP_farf.h"
 #include "HAP_perf.h"
 
+#ifndef HTP_V68_DEQUANT_SCALAR_REFERENCE
+#define HTP_V68_DEQUANT_SCALAR_REFERENCE 0
+#endif
+
+#if HTP_HMX_V68
+/* The tested SM8350 has 4 MiB VTCM, with the final 256 KiB reserved for
+ * precomputed tables. The largest layout below uses six areas plus one
+ * identity tile and scales: 3 MiB + 2304 bytes. A 512x512 FP16 block fits
+ * exactly in one area; its FP32 activation staging fits in two areas. */
+#define WEIGHT_AREA_SIZE     (512 * 1024)
+#define ACTIVATION_AREA_SIZE (512 * 1024)
+#define OUTPUT_AREA_SIZE     (512 * 1024)
+#define SCRATCH_AREA_SIZE    (512 * 1024)
+#else
 #define WEIGHT_AREA_SIZE     (1 * 1024 * 1024)
 #define ACTIVATION_AREA_SIZE (1 * 1024 * 1024)
 #define OUTPUT_AREA_SIZE     (1 * 1024 * 1024)
 #define SCRATCH_AREA_SIZE    (1 * 1024 * 1024)
+#endif
 
 static const __fp16 q4_0_to_fp16_lut[64] __attribute__((aligned(VLEN))) = {
   -8, 0, -7, 0, -6, 0, -5, 0, -4, 0, -3, 0, -2, 0, -1, 0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0,
@@ -53,9 +70,170 @@ static inline size_t get_super_block_size(enum ggml_type weight_type) {
   }
 }
 
-static inline int dma_issue_load_from_ddr(dma_desc_1d_t *desc, void *vtcm_dst, const void *src, size_t size) {
-  dma_wait_for_idle();
+static bool matmul_dimensions_valid(int m, int k, int n) {
+  if (m <= 0 || k <= 0 || n <= 0 || k % 32 || n % 32) {
+    return false;
+  }
+  /* Internal tile/copy helpers use signed int element offsets. Also reject
+   * byte counts that would wrap the 32-bit DSP address space. */
+  const uint64_t mk = (uint64_t) m * (uint64_t) k;
+  const uint64_t mn = (uint64_t) m * (uint64_t) n;
+  const uint64_t kn = (uint64_t) k * (uint64_t) n;
+  return mk <= INT_MAX && mn <= INT_MAX && kn <= INT_MAX &&
+         mk <= SIZE_MAX / sizeof(float) && mn <= SIZE_MAX / sizeof(float) &&
+         kn <= SIZE_MAX / sizeof(__fp16);
+}
 
+static void submit_matmul_job(worker_pool_context_t context, worker_pool_job_t job) {
+  if (worker_pool_submit(context, job) != AEE_SUCCESS) {
+    /* A missing pool must not leave a synctoken waiting forever. This retains
+     * DSP execution, with less overlap; HMX callbacks acquire their own unit. */
+    job.fptr(job.dptr, 0);
+  }
+}
+
+static inline void matmul_vtcm_barrier(void) {
+#if HTP_HMX_V68
+  /* Publish this thread's VTCM writes before handing data to DMA/HMX or a
+   * different worker. Include a compiler memory barrier as well. */
+  asm volatile("barrier" ::: "memory");
+#endif
+}
+
+static inline bool matmul_dma_wait_for_idle(void) {
+  const bool idle = dma_wait_for_idle();
+  matmul_vtcm_barrier();
+  return idle;
+}
+
+static bool matmul_vtcm_layout_fits(const void *base, const void *end) {
+  const uintptr_t first = (uintptr_t) base;
+  const uintptr_t last = (uintptr_t) end;
+  return last >= first && last - first <= vtcm_manager_get_usable_size();
+}
+
+/* Input lanes come from sign-extending INT8, so their range is [-128,127].
+ * Build IEEE half bits using integer operations. A qfloat16 addition/subtraction
+ * is not a bit-exact substitute: its signed mantissa loses precision before
+ * cancellation (for example, when subtracting a large floating-point bias). */
+static inline HVX_Vector matmul_int8_lanes_to_fp16(HVX_Vector lanes) {
+#if HTP_HMX_V68
+  const HVX_Vector zero = Q6_V_vzero();
+  const HVX_Vector magnitude = Q6_Vh_vabs_Vh(lanes);
+  const HVX_Vector leading_zeros = Q6_Vuh_vcl0_Vuh(magnitude);
+  const HVX_Vector shift = Q6_Vh_vsub_VhVh(leading_zeros, Q6_Vh_vsplat_R(5));
+  const HVX_Vector significand = Q6_Vh_vasl_VhVh(magnitude, shift);
+  const HVX_Vector fraction = Q6_V_vand_VV(significand, Q6_Vh_vsplat_R(0x03ff));
+  const HVX_Vector exponent = Q6_Vh_vasl_VhR(
+      Q6_Vh_vsub_VhVh(Q6_Vh_vsplat_R(30), leading_zeros), 10);
+  const HVX_Vector sign = Q6_V_vand_VV(lanes, Q6_Vh_vsplat_R(0x8000));
+  const HVX_Vector bits = Q6_V_vor_VV(sign, Q6_V_vor_VV(exponent, fraction));
+  return Q6_V_vmux_QVV(Q6_Q_vcmp_eq_VhVh(magnitude, zero), zero, bits);
+#else
+  return Q6_Vhf_equals_Vh(lanes);
+#endif
+}
+
+#if HTP_HMX_V68
+/* Exact quant-value x scale: integer HVX arithmetic constructs the exact FP32
+ * product bits, then the bit-exact conversion rounds to IEEE half once. Qfloat's
+ * implicit odd LSB can perturb half-way products before that final rounding.
+ * All input quant values are IEEE half encodings of integers in [-128,127]. */
+static inline HVX_Vector matmul_v68_integer_product_bits(HVX_Vector product,
+                                                      HVX_Vector exponent,
+                                                      HVX_Vector sign) {
+  const HVX_Vector zero = Q6_V_vzero();
+  const HVX_Vector leading = Q6_Vuw_vcl0_Vuw(product);
+  const HVX_Vector length = Q6_Vw_vsub_VwVw(Q6_V_vsplat_R(32), leading);
+  const HVX_Vector shift = Q6_Vw_vsub_VwVw(leading, Q6_V_vsplat_R(8));
+  const HVX_Vector fraction = Q6_V_vand_VV(
+      Q6_Vw_vasl_VwVw(product, shift), Q6_V_vsplat_R(0x007fffff));
+  const HVX_Vector biased = Q6_Vw_vadd_VwVw(
+      Q6_Vw_vadd_VwVw(exponent, length), Q6_V_vsplat_R(101));
+  const HVX_Vector sign32 = Q6_Vw_vasl_VwR(sign, 16);
+  const HVX_Vector bits = Q6_V_vor_VV(sign32, Q6_V_vor_VV(
+      Q6_Vw_vasl_VwR(biased, 23), fraction));
+  return Q6_V_vmux_QVV(Q6_Q_vcmp_eq_VwVw(product, zero), sign32, bits);
+}
+
+static inline HVX_Vector matmul_dequant_multiply_fp16_integer(HVX_Vector values,
+                                                           HVX_Vector scales) {
+  const HVX_Vector zero = Q6_V_vzero();
+  const HVX_Vector mask_fraction = Q6_Vh_vsplat_R(0x03ff);
+  const HVX_Vector magnitude = Q6_V_vand_VV(values, Q6_Vh_vsplat_R(0x7fff));
+  const HVX_VectorPred quant_zero = Q6_Q_vcmp_eq_VhVh(magnitude, zero);
+  const HVX_Vector quant_exponent = Q6_Vuh_vlsr_VuhR(magnitude, 10);
+  const HVX_Vector quant_significand = Q6_V_vor_VV(
+      Q6_V_vand_VV(values, mask_fraction), Q6_Vh_vsplat_R(0x0400));
+  const HVX_Vector quant_shift = Q6_Vh_vsub_VhVh(Q6_Vh_vsplat_R(25), quant_exponent);
+  const HVX_Vector quant_magnitude = Q6_V_vmux_QVV(quant_zero, zero,
+      Q6_Vh_vlsr_VhVh(quant_significand, quant_shift));
+
+  const HVX_Vector scale_exponent = Q6_Vuh_vlsr_VuhR(
+      Q6_V_vand_VV(scales, Q6_Vh_vsplat_R(0x7c00)), 10);
+  const HVX_Vector scale_fraction = Q6_V_vand_VV(scales, mask_fraction);
+  const HVX_Vector scale_significand = Q6_V_vmux_QVV(
+      Q6_Q_vcmp_eq_VhVh(scale_exponent, zero), scale_fraction,
+      Q6_V_vor_VV(scale_fraction, Q6_Vh_vsplat_R(0x0400)));
+  const HVX_Vector effective_exponent = Q6_Vuh_vmax_VuhVuh(scale_exponent, Q6_Vh_vsplat_R(1));
+  const HVX_Vector sign = Q6_V_vand_VV(Q6_V_vxor_VV(values, scales), Q6_Vh_vsplat_R(0x8000));
+  /* Integer widening multiply gives even lanes in lo and odd lanes in hi.
+   * Do not use vunpack for metadata: unlike this multiply, vunpack preserves
+   * consecutive element order across the two result registers. */
+  const HVX_VectorPair product = Q6_Wuw_vmpy_VuhVuh(quant_magnitude, scale_significand);
+  const HVX_Vector low_mask = Q6_V_vsplat_R(0x0000ffff);
+  const HVX_Vector result0 = matmul_v68_integer_product_bits(Q6_V_lo_W(product),
+      Q6_V_vand_VV(effective_exponent, low_mask), Q6_V_vand_VV(sign, low_mask));
+  const HVX_Vector result1 = matmul_v68_integer_product_bits(Q6_V_hi_W(product),
+      Q6_Vuw_vlsr_VuwR(effective_exponent, 16), Q6_Vuw_vlsr_VuwR(sign, 16));
+  const HVX_Vector rounded = hvx_my_wsf_to_vhf(result1, result0);
+
+  /* Finite quant values times an infinite/NaN scale. The normal path above
+   * handles finite/subnormal scales and signed zero exactly. */
+  const HVX_Vector quiet_nan_fraction = Q6_V_vor_VV(scale_fraction, Q6_Vh_vsplat_R(0x0200));
+  const HVX_Vector special_fraction = Q6_V_vmux_QVV(quant_zero,
+      quiet_nan_fraction, Q6_V_vmux_QVV(Q6_Q_vcmp_eq_VhVh(scale_fraction, zero),
+                                       zero, quiet_nan_fraction));
+  const HVX_Vector special = Q6_V_vor_VV(sign,
+      Q6_V_vor_VV(Q6_Vh_vsplat_R(0x7c00), special_fraction));
+  return Q6_V_vmux_QVV(Q6_Q_vcmp_eq_VhVh(scale_exponent, Q6_Vh_vsplat_R(31)),
+                       special, rounded);
+}
+#endif
+
+static inline HVX_Vector matmul_dequant_multiply_fp16(HVX_Vector values, HVX_Vector scales) {
+#if HTP_HMX_V68 && HTP_V68_DEQUANT_SCALAR_REFERENCE
+  /* Correctness diagnostic: retain HVX unpack/LUT and HMX GEMM, but compute
+   * only dequant products with scalar IEEE FP32 and an exact half conversion.
+   * Do not let the compiler reintroduce qfloat via auto-vectorization. */
+  __attribute__((aligned(128))) uint16_t value_bits[64], scale_bits[64], result_bits[64];
+  vmem(value_bits) = values;
+  vmem(scale_bits) = scales;
+#pragma clang loop vectorize(disable) interleave(disable)
+  for (int lane = 0; lane < 64; ++lane) {
+    uint32_t vb = hvx_v68_hf_bits_to_sf(value_bits[lane]);
+    uint32_t sb = hvx_v68_hf_bits_to_sf(scale_bits[lane]);
+    float value, scale, product;
+    memcpy(&value, &vb, sizeof(value));
+    memcpy(&scale, &sb, sizeof(scale));
+    product = value * scale;
+    uint32_t pb;
+    memcpy(&pb, &product, sizeof(pb));
+    result_bits[lane] = hvx_v68_sf_bits_to_hf(pb);
+  }
+  return vmem(result_bits);
+#elif HTP_HMX_V68
+  return matmul_dequant_multiply_fp16_integer(values, scales);
+#else
+  return Q6_Vhf_equals_Vqf16(Q6_Vqf16_vmpy_VhfVhf(values, scales));
+#endif
+}
+
+static inline int dma_issue_load_from_ddr(dma_desc_1d_t *desc, void *vtcm_dst, const void *src, size_t size) {
+  matmul_dma_wait_for_idle();
+
+  /* In particular, do not leave src_dlbc/dst_dlbc set to stack garbage. */
+  *desc           = (dma_desc_1d_t) { 0 };
   desc->next       = 0;
   desc->length     = size;
   desc->type       = DMA_DESC_TYPE_1D;
@@ -66,6 +244,7 @@ static inline int dma_issue_load_from_ddr(dma_desc_1d_t *desc, void *vtcm_dst, c
   desc->src        = (uint32_t) src;
   desc->dst        = (uint32_t) vtcm_dst;
 
+  matmul_vtcm_barrier();
   return dma_submit_one(desc);
 }
 
@@ -105,7 +284,7 @@ static void transfer_activation_chunk_fp32_to_fp16(__fp16 *restrict vtcm_dst, co
     const bool next_row_valid = (r + 1) < n_rows;
 
     const HVX_Vector *pv_in0 = (const HVX_Vector *) (src + (r + 0) * k_stride);
-    const HVX_Vector *pv_in1 = (const HVX_Vector *) (src + (r + 1) * k_stride);
+    const HVX_Vector *pv_in1 = next_row_valid ? (const HVX_Vector *) (src + (r + 1) * k_stride) : NULL;
     for (int c = 0; c < k_block; c += 32) {
       HVX_Vector v0 = *pv_in0++;
       HVX_Vector v1 = next_row_valid ? *pv_in1++ : Q6_V_vzero();
@@ -120,6 +299,7 @@ static void transfer_activation_chunk_fp32_to_fp16(__fp16 *restrict vtcm_dst, co
       tile[r1 / 2]     = v_out;
     }
   }
+  matmul_vtcm_barrier();
 }
 
 typedef struct {
@@ -175,6 +355,7 @@ static void transfer_permuted_weight_fp16_worker_loop(void *data, int _worker_in
     transfer_permuted_weight_fp16_task(vtcm_dst, src, k, chunk_size);
   }
 
+  matmul_vtcm_barrier();
   worker_pool_synctoken_jobdone(&(state->sync_ctx));
 }
 
@@ -187,14 +368,14 @@ static void transfer_permuted_weight_chunk_fp16(__fp16 *vtcm_dst, const __fp16 *
   if (use_dma) {
     size_t size = n_cols * k * sizeof(__fp16);
 
-    dma_desc_1d_t desc;
+    dma_desc_1d_t desc __attribute__((aligned(64))) = { 0 };
     dma_issue_load_from_ddr(&desc, vtcm_dst, src, size);
-    dma_wait_for_idle();
+    matmul_dma_wait_for_idle();
 
     return;
   }
 
-  int    n_workers         = num_hvx128_contexts;
+  int    n_workers         = num_hvx128_contexts ? num_hvx128_contexts : 1;
   size_t n_tot_chunks      = n_cols / HMX_FP16_TILE_N_COLS;
   size_t n_chunks_per_task = ceil_div(n_tot_chunks, n_workers);
   // size_t n_chunks_per_task = 1;
@@ -211,7 +392,7 @@ static void transfer_permuted_weight_chunk_fp16(__fp16 *vtcm_dst, const __fp16 *
 
   worker_pool_synctoken_init(&(state.sync_ctx), n_workers);
   for (int i = 0; i < n_workers; ++i) {
-    worker_pool_submit(NULL, job);  // use default worker pool
+    submit_matmul_job(NULL, job);  // use default worker pool
   }
   worker_pool_synctoken_wait(&(state.sync_ctx));
 }
@@ -282,7 +463,7 @@ static inline HVX_Vector dequantize_single_q4_0_group(const block_q4_0 *group, c
   // HVX_Vector v_group_hf = Q6_V_vlalign_VVR(v1, v0_rot, 32);
 
   // dequantize: quants(FP16) * values(FP16)
-  v_group_hf = Q6_Vhf_equals_Vqf16(Q6_Vqf16_vmpy_VhfVhf(v_group_hf, v_scales));
+  v_group_hf = matmul_dequant_multiply_fp16(v_group_hf, v_scales);
   return v_group_hf;
 }
 
@@ -293,10 +474,10 @@ static inline HVX_Vector dequantize_single_q8_0_group(const block_q8_0 *group) {
   HVX_Vector v_scales = Q6_V_lo_W(Q6_Wh_vlut16_VbVhR_nomatch(Q6_V_vzero(), vs, 0));
 
   HVX_Vector v0         = Q6_V_lo_W(Q6_Wh_vunpack_Vb(vq));
-  HVX_Vector v_group_hf = Q6_Vhf_equals_Vh(v0);
+  HVX_Vector v_group_hf = matmul_int8_lanes_to_fp16(v0);
 
   // dequantize: quants(FP16) * values(FP16)
-  v_group_hf = Q6_Vhf_equals_Vqf16(Q6_Vqf16_vmpy_VhfVhf(v_group_hf, v_scales));
+  v_group_hf = matmul_dequant_multiply_fp16(v_group_hf, v_scales);
   return v_group_hf;
 }
 
@@ -394,10 +575,10 @@ void dequantize_permuted_weight_q4_0_to_fp16_hvx_task(__fp16 *restrict vtcm_dst,
     HVX_Vector vs0_c = Q6_V_lo_W(vp_s0), vs1_c = Q6_V_hi_W(vp_s0);
     HVX_Vector vs2_c = Q6_V_lo_W(vp_s1), vs3_c = Q6_V_hi_W(vp_s1);
 
-    *pv_out++ = Q6_Vhf_equals_Vqf16(Q6_Vqf16_vmpy_VhfVhf(Q6_V_lo_W(vp_q0), vs0_c));
-    *pv_out++ = Q6_Vhf_equals_Vqf16(Q6_Vqf16_vmpy_VhfVhf(Q6_V_hi_W(vp_q0), vs1_c));
-    *pv_out++ = Q6_Vhf_equals_Vqf16(Q6_Vqf16_vmpy_VhfVhf(Q6_V_lo_W(vp_q1), vs2_c));
-    *pv_out++ = Q6_Vhf_equals_Vqf16(Q6_Vqf16_vmpy_VhfVhf(Q6_V_hi_W(vp_q1), vs3_c));
+    *pv_out++ = matmul_dequant_multiply_fp16(Q6_V_lo_W(vp_q0), vs0_c);
+    *pv_out++ = matmul_dequant_multiply_fp16(Q6_V_hi_W(vp_q0), vs1_c);
+    *pv_out++ = matmul_dequant_multiply_fp16(Q6_V_lo_W(vp_q1), vs2_c);
+    *pv_out++ = matmul_dequant_multiply_fp16(Q6_V_hi_W(vp_q1), vs3_c);
   }
 }
 
@@ -478,10 +659,10 @@ void dequantize_permuted_weight_q8_0_to_fp16_hvx_task(__fp16 *restrict vtcm_dst,
     HVX_VectorPair vp0 = Q6_Wh_vunpack_Vb(vq0);
     HVX_VectorPair vp1 = Q6_Wh_vunpack_Vb(vq1);
 
-    HVX_Vector v0 = Q6_Vhf_equals_Vh(Q6_V_lo_W(vp0));
-    HVX_Vector v1 = Q6_Vhf_equals_Vh(Q6_V_hi_W(vp0));
-    HVX_Vector v2 = Q6_Vhf_equals_Vh(Q6_V_lo_W(vp1));
-    HVX_Vector v3 = Q6_Vhf_equals_Vh(Q6_V_hi_W(vp1));
+    HVX_Vector v0 = matmul_int8_lanes_to_fp16(Q6_V_lo_W(vp0));
+    HVX_Vector v1 = matmul_int8_lanes_to_fp16(Q6_V_hi_W(vp0));
+    HVX_Vector v2 = matmul_int8_lanes_to_fp16(Q6_V_lo_W(vp1));
+    HVX_Vector v3 = matmul_int8_lanes_to_fp16(Q6_V_hi_W(vp1));
 
     // HVX_Vector vs0_c, vs1_c, vs2_c, vs3_c;
     // EXPAND_QK_0_VEC_SCALES_COMPUTATION(src[i], vs0_c, vs1_c, vs2_c, vs3_c);
@@ -495,10 +676,10 @@ void dequantize_permuted_weight_q8_0_to_fp16_hvx_task(__fp16 *restrict vtcm_dst,
     HVX_Vector vs0_c = Q6_V_lo_W(vp_s0), vs1_c = Q6_V_hi_W(vp_s0);
     HVX_Vector vs2_c = Q6_V_lo_W(vp_s1), vs3_c = Q6_V_hi_W(vp_s1);
 
-    *pv_out++ = Q6_Vhf_equals_Vqf16(Q6_Vqf16_vmpy_VhfVhf(v0, vs0_c));
-    *pv_out++ = Q6_Vhf_equals_Vqf16(Q6_Vqf16_vmpy_VhfVhf(v1, vs1_c));
-    *pv_out++ = Q6_Vhf_equals_Vqf16(Q6_Vqf16_vmpy_VhfVhf(v2, vs2_c));
-    *pv_out++ = Q6_Vhf_equals_Vqf16(Q6_Vqf16_vmpy_VhfVhf(v3, vs3_c));
+    *pv_out++ = matmul_dequant_multiply_fp16(v0, vs0_c);
+    *pv_out++ = matmul_dequant_multiply_fp16(v1, vs1_c);
+    *pv_out++ = matmul_dequant_multiply_fp16(v2, vs2_c);
+    *pv_out++ = matmul_dequant_multiply_fp16(v3, vs3_c);
   }
 }
 
@@ -527,6 +708,7 @@ static void dequantize_permuted_weight_qk_0_to_fp16_hvx_worker_loop(void *data, 
     }
   }
 
+  matmul_vtcm_barrier();
   worker_pool_synctoken_jobdone(&(state->sync_ctx));
 }
 
@@ -537,7 +719,7 @@ void dequantize_permuted_weight_chunk_qk_0_to_fp16_hvx(__fp16 *vtcm_dst, const v
 
   const bool src_in_vtcm = true;
 
-  int    n_workers         = num_hvx128_contexts;
+  int    n_workers         = num_hvx128_contexts ? num_hvx128_contexts : 1;
   size_t n_tot_chunks      = ne / QK_K;
   size_t n_chunks_per_task = ceil_div(n_tot_chunks, n_workers);
 
@@ -556,7 +738,7 @@ void dequantize_permuted_weight_chunk_qk_0_to_fp16_hvx(__fp16 *vtcm_dst, const v
 
   worker_pool_synctoken_init(&(state.sync_ctx), n_workers);
   for (int i = 0; i < n_workers; ++i) {
-    worker_pool_submit(NULL, job);  // use default worker pool
+    submit_matmul_job(NULL, job);  // use default worker pool
   }
   worker_pool_synctoken_wait(&(state.sync_ctx));
 
@@ -670,7 +852,7 @@ void dequantize_common_weight_chunk_qk_0_to_fp16_hvx(__fp16 *vtcm_dst, const voi
 
   const bool src_in_vtcm = true;
 
-  int    n_workers         = num_hvx128_contexts;
+  int    n_workers         = num_hvx128_contexts ? num_hvx128_contexts : 1;
   size_t n_tot_chunks      = ne / QK_0;
   size_t n_chunks_per_task = ceil_div(n_tot_chunks, n_workers);
 
@@ -689,7 +871,7 @@ void dequantize_common_weight_chunk_qk_0_to_fp16_hvx(__fp16 *vtcm_dst, const voi
 
   worker_pool_synctoken_init(&(state.sync_ctx), n_workers);
   for (int i = 0; i < n_workers; ++i) {
-    worker_pool_submit(NULL, job);  // use default worker pool
+    submit_matmul_job(NULL, job);  // use default worker pool
   }
   worker_pool_synctoken_wait(&(state.sync_ctx));
 }
@@ -697,6 +879,7 @@ void dequantize_common_weight_chunk_qk_0_to_fp16_hvx(__fp16 *vtcm_dst, const voi
 static void core_dot_chunk_fp16(__fp16 *output, const __fp16 *activation, const __fp16 *weight, const __fp16 *scales,
                                 int n_row_tiles, int n_col_tiles, int n_dot_tiles) {
   hmx_unit_acquire();
+  matmul_vtcm_barrier();
 
   asm volatile("mxclracc.hf");
   hmx_set_output_scales(scales);
@@ -717,6 +900,7 @@ static void core_dot_chunk_fp16(__fp16 *output, const __fp16 *activation, const 
     }
   }
 
+  matmul_vtcm_barrier();
   hmx_unit_release();
 }
 
@@ -740,10 +924,9 @@ static void transfer_output_chunk_fp16_to_fp32(float *restrict dst, const __fp16
       HVX_VectorPair vp = hvx_my_vhf_to_wsf(v_src);
 
       HVX_Vector *pv_out0 = (HVX_Vector *) (dst + (r * n + c + 0));
-      HVX_Vector *pv_out1 = (HVX_Vector *) (dst + (r * n + c + n));  // next row in global memory
-
       *pv_out0 = Q6_V_lo_W(vp);
       if (r + 1 < n_rows) {
+        HVX_Vector *pv_out1 = (HVX_Vector *) (dst + (r * n + c + n));  // next row in global memory
         *pv_out1 = Q6_V_hi_W(vp);
       }
     }
@@ -752,11 +935,7 @@ static void transfer_output_chunk_fp16_to_fp32(float *restrict dst, const __fp16
 
 int hmx_mat_mul_permuted_w16a32(float *restrict dst, const float *restrict activation,
                                 const __fp16 *restrict permuted_weight, int m, int k, int n) {
-  if (!dst || !activation || !permuted_weight || !m || !n || !k) {
-    return -1;
-  }
-  if (k % 32 != 0 || n % 32 != 0) {
-    // TODO(hzx): can we remove this restriction?
+  if (!dst || !activation || !permuted_weight || !matmul_dimensions_valid(m, k, n)) {
     return -1;
   }
   if (!is_aligned(dst, VLEN) || !is_aligned(activation, VLEN) || !is_aligned(permuted_weight, VLEN)) {
@@ -769,10 +948,16 @@ int hmx_mat_mul_permuted_w16a32(float *restrict dst, const float *restrict activ
 
   // VTCM layout: weight | activation | output | scales
   uint8_t *vtcm_ptr        = (uint8_t *) vtcm_manager_get_vtcm_base();
+  if (!vtcm_ptr) {
+    return -1;
+  }
   __fp16  *vtcm_weight     = (__fp16 *) vtcm_seq_alloc(&vtcm_ptr, weight_area_size);
   __fp16  *vtcm_activation = (__fp16 *) vtcm_seq_alloc(&vtcm_ptr, activation_area_size);
   __fp16  *vtcm_output     = (__fp16 *) vtcm_seq_alloc(&vtcm_ptr, output_area_size);
   __fp16  *vtcm_scales     = (__fp16 *) vtcm_seq_alloc(&vtcm_ptr, 256);
+  if (!matmul_vtcm_layout_fits(vtcm_weight, vtcm_ptr)) {
+    return -1;
+  }
 
   hmx_init_column_scales(vtcm_scales, Q6_V_vsplat_R(0x3c00));  // fp16: 1.0
 
@@ -785,7 +970,10 @@ int hmx_mat_mul_permuted_w16a32(float *restrict dst, const float *restrict activ
                   HMX_FP16_TILE_N_COLS, &m_chunk_n_rows, &n_chunk_n_cols);
 
   // FARF(ALWAYS, "computed chunk size: %d, %d", m_chunk_n_rows, n_chunk_n_cols);
-  assert(m_chunk_n_rows > 0 && n_chunk_n_cols > 0);
+  if (m_chunk_n_rows == 0 || n_chunk_n_cols == 0) {
+    /* A full 32-row/column dot tile must fit the fixed VTCM areas. */
+    return -1;
+  }
 
   // int64_t activation_load_time, weight_load_time, hmx_core_time, output_store_time;
   // activation_load_time = weight_load_time = hmx_core_time = output_store_time = 0;
@@ -873,11 +1061,7 @@ int mat_mul_qk_0_d16a32_out_stationary(float *restrict out, const float *restric
 int hmx_mat_mul_permuted_qk_0_d16a32(float *restrict dst, const float *restrict activation,
                                      const uint8_t *restrict permuted_weight, int m, int k, int n,
                                      enum ggml_type weight_type) {
-  if (!dst || !activation || !permuted_weight || !m || !n || !k) {
-    return -1;
-  }
-  if (k % 32 != 0 || n % 32 != 0) {
-    // TODO(hzx): can we remove this restriction?
+  if (!dst || !activation || !permuted_weight || !matmul_dimensions_valid(m, k, n)) {
     return -1;
   }
   if (!is_aligned(dst, VLEN) || !is_aligned(activation, VLEN) || !is_aligned(permuted_weight, VLEN)) {
@@ -885,7 +1069,7 @@ int hmx_mat_mul_permuted_qk_0_d16a32(float *restrict dst, const float *restrict 
   }
 
   // for large m, k (e.g. prefill FFN Down), use out-staionary version
-  if (m >= 128 && k > n && n > 1024) {
+  if (m >= 128 && k > n && n > 1024 && k < 16384) {
     return mat_mul_qk_0_d16a32_out_stationary(dst, activation, permuted_weight, m, k, n, weight_type);
   }
 
@@ -901,6 +1085,9 @@ int hmx_mat_mul_permuted_qk_0_d16a32(float *restrict dst, const float *restrict 
 
   // VTCM layout: weight | activation | output | scales
   uint8_t *vtcm_ptr        = (uint8_t *) vtcm_manager_get_vtcm_base();
+  if (!vtcm_ptr) {
+    return -1;
+  }
   __fp16  *vtcm_weight     = (__fp16 *) vtcm_seq_alloc(&vtcm_ptr, weight_area_size);
   __fp16  *vtcm_activation = (__fp16 *) vtcm_seq_alloc(&vtcm_ptr, activation_area_size);
   __fp16  *vtcm_output     = (__fp16 *) vtcm_seq_alloc(&vtcm_ptr, output_area_size);
@@ -908,6 +1095,9 @@ int hmx_mat_mul_permuted_qk_0_d16a32(float *restrict dst, const float *restrict 
   void    *vtcm_scratch1   = vtcm_seq_alloc(&vtcm_ptr, scratch_area_size);
   void    *vtcm_scratch2   = vtcm_seq_alloc(&vtcm_ptr, scratch_area_size);
   __fp16  *vtcm_scales     = (__fp16 *) vtcm_seq_alloc(&vtcm_ptr, 256);
+  if (!matmul_vtcm_layout_fits(vtcm_weight, vtcm_ptr)) {
+    return -1;
+  }
 
   hmx_init_column_scales(vtcm_scales, Q6_V_vsplat_R(0x3c00));  // fp16: 1.0
 
@@ -920,7 +1110,9 @@ int hmx_mat_mul_permuted_qk_0_d16a32(float *restrict dst, const float *restrict 
                   HMX_FP16_TILE_N_COLS, &m_chunk_n_rows, &n_chunk_n_cols);
 
   // FARF(ALWAYS, "computed chunk size: %d, %d", m_chunk_n_rows, n_chunk_n_cols);
-  assert(m_chunk_n_rows > 0 && n_chunk_n_cols > 0);
+  if (m_chunk_n_rows == 0 || n_chunk_n_cols == 0) {
+    return -1;
+  }
 
   // int64_t activation_load_time, weight_load_time, hmx_core_time, output_store_time;
   // activation_load_time = weight_load_time = hmx_core_time = output_store_time = 0;
@@ -964,7 +1156,7 @@ int hmx_mat_mul_permuted_qk_0_d16a32(float *restrict dst, const float *restrict 
 
         // int64_t wei_t0 = HAP_perf_get_qtimer_count();
         {
-          dma_wait_for_idle();  // wait until current weight chunk become ready
+          matmul_dma_wait_for_idle();  // wait until current weight chunk become ready
 
           const size_t nc_next = nc + n_chunk_n_cols;
           if (nc_next < n) {
@@ -1051,7 +1243,7 @@ int hmx_mat_mul_permuted_qk_0_d16a32(float *restrict dst, const float *restrict 
       // prologue: B0, A1, C0, B1
       {
         // B0
-        dma_wait_for_idle();
+        matmul_dma_wait_for_idle();
         dequantize_permuted_weight_chunk_qk_0_to_fp16_hvx(vtcm_weight_bufs[0], NULL, n_cols_A0 * k, k, weight_type,
                                                           vtcm_qweight);
 
@@ -1078,12 +1270,12 @@ int hmx_mat_mul_permuted_qk_0_d16a32(float *restrict dst, const float *restrict 
           s->n_dot_tiles = k / HMX_FP16_TILE_N_ROWS;
 
           worker_pool_synctoken_init(&s->sync_ctx, 1);
-          worker_pool_submit(hmx_worker_pool_ctx, mm_task_job);
+          submit_matmul_job(hmx_worker_pool_ctx, mm_task_job);
         }
 
         // B1
         if (1 < n_chunk_cnt) {
-          dma_wait_for_idle();
+          matmul_dma_wait_for_idle();
           dequantize_permuted_weight_chunk_qk_0_to_fp16_hvx(vtcm_weight_bufs[1], NULL, n_cols_A1 * k, k, weight_type,
                                                             vtcm_qweight);
         }
@@ -1125,7 +1317,7 @@ int hmx_mat_mul_permuted_qk_0_d16a32(float *restrict dst, const float *restrict 
           s->n_dot_tiles = k / HMX_FP16_TILE_N_ROWS;
 
           worker_pool_synctoken_init(&s->sync_ctx, 1);
-          worker_pool_submit(hmx_worker_pool_ctx, mm_task_job);
+          submit_matmul_job(hmx_worker_pool_ctx, mm_task_job);
         }
 
         // compute D_{i}
@@ -1134,7 +1326,7 @@ int hmx_mat_mul_permuted_qk_0_d16a32(float *restrict dst, const float *restrict 
 
         // wait for DMA (A_{i+2}), compute B_{i+2}
         if (i + 2 < n_chunk_cnt) {
-          dma_wait_for_idle();
+          matmul_dma_wait_for_idle();
           dequantize_permuted_weight_chunk_qk_0_to_fp16_hvx(vtcm_weight_bufs[(i + 2) % 2], NULL, n_cols_p2 * k, k,
                                                             weight_type, vtcm_qweight);
         }
@@ -1159,6 +1351,7 @@ int hmx_mat_mul_permuted_qk_0_d16a32(float *restrict dst, const float *restrict 
 void core_mma_chunk_fp16(__fp16 *c, const __fp16 *a, const __fp16 *b, const __fp16 *col_scales, const __fp16 *eye_tile,
                          int n_row_tiles, int n_col_tiles, int n_dot_tiles, bool zero_init) {
   hmx_unit_acquire();
+  matmul_vtcm_barrier();
 
   asm volatile("mxclracc.hf");
   hmx_set_output_scales(col_scales);
@@ -1183,6 +1376,7 @@ void core_mma_chunk_fp16(__fp16 *c, const __fp16 *a, const __fp16 *b, const __fp
     }
   }
 
+  matmul_vtcm_barrier();
   hmx_unit_release();
 }
 
@@ -1203,7 +1397,7 @@ static void dma_load_2d_sync(uint8_t *dst, const uint8_t *src, size_t dst_stride
     size_t src_offset = i * src_stride;
     size_t dst_offset = i * dst_stride;
     dma_issue_load_from_ddr(&desc, dst + dst_offset, src + src_offset, width);
-    dma_wait_for_idle();  // wait for the current row to be ready
+    matmul_dma_wait_for_idle();  // wait for the current row to be ready
   }
 }
 
@@ -1226,7 +1420,7 @@ void transfer_activation_chunk_no_prefetch(__fp16 *restrict vtcm_dst, const floa
     const bool next_row_valid = (r + 1) < n_rows;
 
     const HVX_Vector *pv_in0 = (const HVX_Vector *) (src + (r + 0) * k_stride);
-    const HVX_Vector *pv_in1 = (const HVX_Vector *) (src + (r + 1) * k_stride);
+    const HVX_Vector *pv_in1 = next_row_valid ? (const HVX_Vector *) (src + (r + 1) * k_stride) : NULL;
     for (int c = 0; c < k_block; c += 32) {
       HVX_Vector v0 = *pv_in0++;
       HVX_Vector v1 = next_row_valid ? *pv_in1++ : Q6_V_vzero();
@@ -1241,6 +1435,7 @@ void transfer_activation_chunk_no_prefetch(__fp16 *restrict vtcm_dst, const floa
       tile[r1 / 2]     = v_out;
     }
   }
+  matmul_vtcm_barrier();
 }
 
 typedef struct {
@@ -1272,7 +1467,7 @@ static void transfer_activation_chunk_worker_fn(void *data, int _worker_index) {
 }
 
 void transfer_activation_chunk_multithread(__fp16 *dst, const float *src, int n_rows, int k_block, int k_stride) {
-  int    n_workers         = num_hvx128_contexts;
+  int    n_workers         = num_hvx128_contexts ? num_hvx128_contexts : 1;
   size_t n_tot_chunks      = n_rows;
   size_t n_chunks_per_task = 32;  // NOTE(hzx): must be multiple of 32 to ensure correct destination address
 
@@ -1289,7 +1484,7 @@ void transfer_activation_chunk_multithread(__fp16 *dst, const float *src, int n_
 
   worker_pool_synctoken_init(&state.sync_ctx, n_workers);
   for (int i = 0; i < n_workers; ++i) {
-    worker_pool_submit(NULL, job);  // use default worker pool
+    submit_matmul_job(NULL, job);  // use default worker pool
   }
   worker_pool_synctoken_wait(&state.sync_ctx);
 }
@@ -1297,14 +1492,19 @@ void transfer_activation_chunk_multithread(__fp16 *dst, const float *src, int n_
 int mat_mul_qk_0_d16a32_out_stationary(float *restrict out, const float *restrict x, const uint8_t *restrict w, int m,
                                        int k, int n, enum ggml_type weight_type) {
   // NOTE(hzx): this constraint on k originates from 2D DMA, consider alternative ways to load activation
-  assert(k < 16384);
-  // assume k % 32 == 0 && n % 32 == 0
+  if (!out || !x || !w || !matmul_dimensions_valid(m, k, n) || k >= 16384 ||
+      !is_aligned(out, VLEN) || !is_aligned(x, VLEN) || !is_aligned(w, VLEN)) {
+    return -1;
+  }
   const size_t super_block_size = get_super_block_size(weight_type);
   if (super_block_size == 0) {
     return -1;
   }
 
   uint8_t *vtcm_ptr        = (uint8_t *) vtcm_manager_get_vtcm_base();
+  if (!vtcm_ptr) {
+    return -1;
+  }
   __fp16  *vtcm_weight     = (__fp16 *) vtcm_seq_alloc(&vtcm_ptr, WEIGHT_AREA_SIZE);
   __fp16  *vtcm_activation = (__fp16 *) vtcm_seq_alloc(&vtcm_ptr, ACTIVATION_AREA_SIZE);
   __fp16  *vtcm_output     = (__fp16 *) vtcm_seq_alloc(&vtcm_ptr, OUTPUT_AREA_SIZE);
@@ -1312,6 +1512,9 @@ int mat_mul_qk_0_d16a32_out_stationary(float *restrict out, const float *restric
   uint8_t *vtcm_scratch1   = vtcm_seq_alloc(&vtcm_ptr, SCRATCH_AREA_SIZE * 2);
   __fp16  *vtcm_eye_tile   = (__fp16 *) vtcm_seq_alloc(&vtcm_ptr, HMX_FP16_TILE_SIZE);
   __fp16  *vtcm_scales     = (__fp16 *) vtcm_seq_alloc(&vtcm_ptr, 256);
+  if (!matmul_vtcm_layout_fits(vtcm_weight, vtcm_ptr)) {
+    return -1;
+  }
 
   // initialize eye tile (32x32 identity matrix)
   {
@@ -1337,7 +1540,9 @@ int mat_mul_qk_0_d16a32_out_stationary(float *restrict out, const float *restric
   static qweight_fetch_task_state_t fetch_task_state;
   static worker_pool_job_t          fetch_task_job;
 
-  worker_pool_init_ex(&fetch_task_worker_pool_ctx, 4096, 1, 0);
+  if (worker_pool_init_ex(&fetch_task_worker_pool_ctx, 4096, 1, 0) != AEE_SUCCESS) {
+    return -1;
+  }
   fetch_task_job.dptr = &fetch_task_state;
   fetch_task_job.fptr = &qweight_fetch_worker_fn;
 
@@ -1380,9 +1585,9 @@ int mat_mul_qk_0_d16a32_out_stationary(float *restrict out, const float *restric
           desc.src_width_offset = 0;
           desc.dst_width_offset = 0;
 
-          dma_wait_for_idle();
+          matmul_dma_wait_for_idle();
           dma_submit_one((dma_desc_1d_t *) &desc);
-          dma_wait_for_idle();
+          matmul_dma_wait_for_idle();
         }
 
         // fetch weight block into VTCM
@@ -1401,7 +1606,7 @@ int mat_mul_qk_0_d16a32_out_stationary(float *restrict out, const float *restric
           s->stride = stride;
 
           worker_pool_synctoken_init(&s->sync_ctx, 1);
-          worker_pool_submit(fetch_task_worker_pool_ctx, fetch_task_job);
+          submit_matmul_job(fetch_task_worker_pool_ctx, fetch_task_job);
         }
         t_a += HAP_perf_get_qtimer_count() - t0;
 

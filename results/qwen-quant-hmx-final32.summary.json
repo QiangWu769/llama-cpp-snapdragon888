@@ -1,0 +1,16 @@
+{
+  "exit": 0,
+  "generated_stdout": " Paris. The capital of Germany is Berlin. The capital of Italy is Rome. The capital of Japan is Tokyo. The capital of Russia is Moscow. The capital\n\n",
+  "dsp_opcode_counts": {
+    "4": 3840,
+    "3": 1536,
+    "5": 768
+  },
+  "performance": [
+    "llama_perf_sampler_print:    sampling time =      24.57 ms /    37 runs   (    0.66 ms per token,  1506.15 tokens per second)",
+    "llama_perf_context_print:        load time =    2070.85 ms",
+    "llama_perf_context_print: prompt eval time =    1171.65 ms /     5 tokens (  234.33 ms per token,     4.27 tokens per second)",
+    "llama_perf_context_print:        eval time =   31326.60 ms /    31 runs   ( 1010.54 ms per token,     0.99 tokens per second)",
+    "llama_perf_context_print:       total time =   33450.26 ms /    36 tokens"
+  ]
+}

@@ -11,14 +11,25 @@
 #define HMX_INLINE_ALWAYS inline __attribute__((unused, always_inline))
 
 static HMX_INLINE_ALWAYS void hmx_set_output_scales(const void *scales) {
-  asm volatile("bias = mxmem2(%0)" ::"r"(scales));
+#if HTP_HMX_V68
+  asm volatile("bias = mxmem(%0)" ::"r"(scales) : "memory");
+#else
+  asm volatile("bias = mxmem2(%0)" ::"r"(scales) : "memory");
+#endif
 }
 
 // set aligned 256 bytes area
 static HMX_INLINE_ALWAYS void hmx_init_column_scales(void *out_scales, HVX_Vector v_scale) {
   HVX_Vector *pv = (HVX_Vector *) out_scales;
 
+#if HTP_HMX_V68
+  // Legacy conversion control is not an FP16 multiplier. Zero was validated
+  // on SM8350; callers must apply any non-unit numerical scale explicitly.
+  (void) v_scale;
+  *pv++ = Q6_V_vzero();
+#else
   *pv++ = v_scale;
+#endif
   *pv   = Q6_V_vzero();
 }
 
@@ -32,11 +43,16 @@ static HMX_INLINE_ALWAYS void hmx_load_tiles_fp16(const __fp16 *row_tiles, const
 }
 
 static HMX_INLINE_ALWAYS void hmx_consume_accumulator_fp16(__fp16 *out) {
+#if HTP_HMX_V68
+  asm volatile("mxmem(%0, %1):after.hf = acc\n"
+               "mxclracc.hf\n" :: "r"(out), "r"(2047) : "memory");
+#else
   asm volatile(
     "cvt.hf = acc(%0)\n"
     "mxmem(%1, %2) = cvt\n" ::"r"(2),
     "r"(out), "r"(0)
     : "memory");
+#endif
 }
 
 // compute inner product of two vectors of tiles

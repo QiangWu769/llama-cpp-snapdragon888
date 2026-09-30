@@ -27,7 +27,8 @@ struct MessageChannel {
   uint8_t      *msg;
   int           rpcmem_fd;
   size_t        max_msg_size;
-  bool          msg_receiver_should_stop;
+  atomic_bool   msg_receiver_should_stop;
+  void         *msg_receiver_stack;
   qurt_signal_t msg_receiver_ready;
   qurt_thread_t msg_receiver_thread;
 };
@@ -41,16 +42,19 @@ static void msg_receiver_loop(void *param) {
   const int SLEEP_TIME_US = 1;
 
   // TODO(hzx): using the poller thread to do computation may not be a good idea
+#if HTP_USE_HMX
   hmx_manager_enable_execution();
+#endif
 
   while (1) {
-    if (chan->msg_receiver_should_stop) {
+    if (atomic_load_explicit(&chan->msg_receiver_should_stop, memory_order_acquire)) {
       break;
     }
 
     struct MessageHeader *msg_hdr = (struct MessageHeader *) chan->msg;
     if (msg_hdr == NULL) {
       qurt_sleep(SLEEP_TIME_US);  // wait until shared message buffer become available
+      continue;
     }
 
     // invalidate cache
@@ -132,7 +136,9 @@ static void msg_receiver_loop(void *param) {
     qurt_sleep(SLEEP_TIME_US);
   }
 
+#if HTP_USE_HMX
   hmx_manager_disable_execution();
+#endif
 }
 
 // init an empty (semantically unintialized) message channel
@@ -141,7 +147,8 @@ void message_channel_init(struct MessageChannel *chan) {
   chan->rpcmem_fd    = -1;
   chan->max_msg_size = 0;
 
-  chan->msg_receiver_should_stop = false;
+  atomic_store_explicit(&chan->msg_receiver_should_stop, false, memory_order_relaxed);
+  chan->msg_receiver_stack = NULL;
 }
 
 bool message_channel_is_active(const struct MessageChannel *chan) {
@@ -159,7 +166,7 @@ int message_channel_create(struct MessageChannel *chan, int rpcmem_fd, size_t ma
   // clear message state
   memset(p, 0, max_msg_size);
 
-  chan->msg_receiver_should_stop = false;
+  atomic_store_explicit(&chan->msg_receiver_should_stop, false, memory_order_relaxed);
   qurt_signal_init(&(chan->msg_receiver_ready));
 
   const size_t stack_size = 8192;
@@ -167,6 +174,7 @@ int message_channel_create(struct MessageChannel *chan, int rpcmem_fd, size_t ma
   if (!stack) {
     FARF(ALWAYS, "%s: failed to allocate memory for thread stack", __func__);
     qurt_signal_destroy(&(chan->msg_receiver_ready));
+    HAP_mmap_put(rpcmem_fd);
     return -1;
   }
 
@@ -177,18 +185,23 @@ int message_channel_create(struct MessageChannel *chan, int rpcmem_fd, size_t ma
   qurt_thread_attr_set_priority(&attr, 64);
   qurt_thread_attr_set_stack_addr(&attr, stack);
   qurt_thread_attr_set_stack_size(&attr, stack_size);
-  qurt_thread_attr_set_autostack(&attr, QURT_THREAD_AUTOSTACK_ENABLED);
+  // This stack is owned by the channel and freed after a successful join.
 
+  // Publish all channel fields before the new thread can read them.
+  chan->msg = p;
+  chan->rpcmem_fd = rpcmem_fd;
+  chan->max_msg_size = max_msg_size;
+  chan->msg_receiver_stack = stack;
   err = qurt_thread_create(&(chan->msg_receiver_thread), &attr, msg_receiver_loop, chan);
   if (err) {
     FARF(ALWAYS, "%s: qurt_thread_create failed with 0x%x", __func__, err);
     qurt_signal_destroy(&(chan->msg_receiver_ready));
+    free(stack);
+    HAP_mmap_put(rpcmem_fd);
+    message_channel_init(chan);
     return -1;
   }
 
-  chan->msg          = p;
-  chan->rpcmem_fd    = rpcmem_fd;
-  chan->max_msg_size = max_msg_size;
   // wait until msg reciever thread is ready
   qurt_signal_wait_all(&(chan->msg_receiver_ready), 1);
   return 0;
@@ -200,11 +213,14 @@ int message_channel_destroy(struct MessageChannel *chan) {
   }
 
   // signal message receiver thread to stop
-  chan->msg_receiver_should_stop = true;
+  atomic_store_explicit(&chan->msg_receiver_should_stop, true, memory_order_release);
 
   int status;
-  qurt_thread_join(chan->msg_receiver_thread, &status);
+  if (qurt_thread_join(chan->msg_receiver_thread, &status) != QURT_EOK) {
+    return -1;
+  }
   qurt_signal_destroy(&(chan->msg_receiver_ready));
+  free(chan->msg_receiver_stack);
   HAP_mmap_put(chan->rpcmem_fd);
 
   message_channel_init(chan);
@@ -223,11 +239,15 @@ AEEResult htp_ops_open(const char *uri, remote_handle64 *handle) {
 
 // FastRPC interface
 AEEResult htp_ops_close(remote_handle64 handle) {
+  if (message_channel_destroy(&global_msg_chan)) {
+    return AEE_EFAILED;
+  }
   mmap_manager_release_all();
-  message_channel_destroy(&global_msg_chan);
 
+#if HTP_USE_HMX
   hmx_manager_reset();
   vtcm_manager_reset();
+#endif
   power_reset();
 
   return AEE_SUCCESS;
@@ -239,11 +259,25 @@ void init_precomputed_tables();
 AEEResult htp_ops_init_backend(remote_handle64 handle) {
   FARF(ALWAYS, "init_backend called");
 
-  power_setup();
-  vtcm_manager_setup();
-  hmx_manager_setup();
-
+  if (power_setup()) return AEE_EFAILED;
+#if HTP_USE_HMX
+  if (vtcm_manager_setup()) {
+    power_reset();
+    return AEE_EFAILED;
+  }
+  if (hmx_manager_setup()) {
+    vtcm_manager_reset();
+    power_reset();
+    return AEE_EFAILED;
+  }
+#if HTP_HMX_V68
+  FARF(ALWAYS, "HTP v68: legacy FP16 HMX matmul/attention, exclusive HMX locks, zero legacy bias");
+#else
   init_precomputed_tables();
+#endif
+#else
+  FARF(ALWAYS, "HTP v68: HVX matmul/attention backend initialized; HMX disabled");
+#endif
 
   return AEE_SUCCESS;
 }
@@ -362,9 +396,13 @@ AEEResult htp_ops_mat_mul_permuted_w16a32(remote_handle64 handle, int32 output_f
   // sprintf(print_buf, "%s: activa digest %g %g %g %g", __func__, a[0], a[1], a[2], a[3]);
   // FARF(ALWAYS, "%s", print_buf);
 
+#if HTP_USE_HMX
   hmx_manager_enable_execution();
+#endif
   err = hmx_mat_mul_permuted_w16a32(output, activation, weight, m, k, n);
+#if HTP_USE_HMX
   hmx_manager_disable_execution();
+#endif
 
   // sprintf(print_buf, "%s: output digest %g %g %g %g", __func__, output[0], output[1], output[2], output[3]);
   // FARF(ALWAYS, "%s", print_buf);
@@ -390,7 +428,11 @@ void internal_op_tests();
 AEEResult htp_ops_test_ops(remote_handle64 handle) {
   FARF(ALWAYS, "Op Tests!");
 
+#if HTP_USE_HMX && !HTP_HMX_V68
   internal_op_tests();
-
   return 0;
+#else
+  // The original tests exercise HMX. Use the host-side v68 RPC tests instead.
+  return AEE_EUNSUPPORTED;
+#endif
 }

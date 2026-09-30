@@ -1,3 +1,269 @@
+#if defined(HTP_HMX_V68) && HTP_HMX_V68
+/* v68 uses legacy HMX conversion with a zero bias register. Unlike the v73
+ * path below, scaling is explicit and softmax state is kept in FP32. Q/O use
+ * FP32 storage despite the public ABI's __fp16 pointer types. */
+#include <limits.h>
+#include <math.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#if !defined(FA_V68_HMX_PORTABLE_TEST)
+#include "dsp/hmx_mgr.h"
+#include "dsp/hmx_utils.h"
+#include "dsp/vtcm_mgr.h"
+#include "dsp/worker_pool.h"
+#endif
+
+#define FA68_MAX_D 512
+#define FA68_SLOT_BYTES (80u * 1024u)
+_Static_assert(128u * FA68_MAX_D + 8448u <= FA68_SLOT_BYTES, "attention scratch capacity");
+
+/* Within each 32x32 tile, consecutive halfwords alternate between two rows.
+ * RHS tile lists are ordered by K; the actual 32x32 tile format is identical. */
+static size_t fa68_cell(int r, int c) {
+  return (size_t) (r & ~1) * 32u + (size_t) c * 2u + (size_t) (r & 1);
+}
+
+static void fa68_dot(__fp16 *out, const __fp16 *lhs, const __fp16 *rhs,
+                     int tiles, const uint32_t *bias) {
+#if defined(FA_V68_HMX_PORTABLE_TEST)
+  (void) bias;
+  for (int r = 0; r < 32; ++r) {
+    for (int c = 0; c < 32; ++c) {
+      float sum = 0;
+      for (int t = 0; t < tiles; ++t) {
+        for (int k = 0; k < 32; ++k) {
+          sum += (float) lhs[t * 1024 + fa68_cell(r, k)] *
+                 (float) rhs[t * 1024 + fa68_cell(k, c)];
+        }
+      }
+      out[fa68_cell(r, c)] = (__fp16) sum;
+    }
+  }
+#else
+  hmx_unit_acquire();
+  hmx_set_output_scales(bias);
+  /* Every dot is independent, including when workers share the HMX unit. */
+  __asm__ volatile("mxclracc.hf" ::: "memory");
+  hmx_dot_fp16(out, lhs, rhs, (size_t) tiles);
+  hmx_unit_release();
+#endif
+}
+
+typedef struct {
+  float *out;
+  const float *query;
+  const __fp16 *key, *value, *mask;
+  size_t qo_stride, kv_stride, mask_stride;
+  unsigned int tasks, row_blocks;
+  int nq, nk, nh, nkh, dim, padded_dim, group;
+  float scale;
+} fa68_args;
+
+static int fa68_init(fa68_args *a, float *o, const float *q,
+                     const __fp16 *k, const __fp16 *v, const __fp16 *mask,
+                     int nq, int nk, int nh, int nkh, int dim) {
+  if (!o || !q || !k || !v || nq <= 0 || nk <= 0 || nk > INT_MAX - 31 || nh <= 0 || nkh <= 0 ||
+      dim <= 0 || dim > FA68_MAX_D || nh % nkh != 0) return -1;
+  if ((uint64_t) nq * (uint64_t) nh > UINT_MAX - 6u ||
+      (size_t) nh > SIZE_MAX / sizeof(float) / (size_t) dim ||
+      (size_t) nkh > SIZE_MAX / sizeof(__fp16) / (size_t) dim) return -1;
+  a->qo_stride = (size_t) nh * dim;
+  a->kv_stride = (size_t) nkh * dim;
+  a->mask_stride = ((size_t) nk + 63u) & ~(size_t) 63u;
+  if ((size_t) nq > SIZE_MAX / sizeof(float) / a->qo_stride ||
+      (size_t) nk > SIZE_MAX / sizeof(__fp16) / a->kv_stride ||
+      (size_t) nq > SIZE_MAX / sizeof(__fp16) / a->mask_stride) return -1;
+  a->out = o; a->query = q; a->key = k; a->value = v; a->mask = mask;
+  a->nq = nq; a->nk = nk; a->nh = nh; a->nkh = nkh; a->dim = dim;
+  a->padded_dim = (dim + 31) & ~31;
+  a->group = nh / nkh;
+  a->row_blocks = ((unsigned int) nq * a->group + 31u) / 32u;
+  a->tasks = a->row_blocks * (unsigned int) nkh;
+  a->scale = 1.0f / sqrtf((float) dim);
+  return 0;
+}
+
+/* Each task handles up to 32 (query, grouped-head) rows of one KV head.
+ * P is normalized before PV, so HMX output need not hold a long unnormalized
+ * sum. The running denominator and output combination stay in FP32. */
+static void fa68_block(const fa68_args *a, unsigned int task, uint8_t *scratch) {
+  const unsigned int kv_head = task / a->row_blocks;
+  const unsigned int first = (task % a->row_blocks) * 32u;
+  const unsigned int total = (unsigned int) a->nq * a->group;
+  const int rows = total - first < 32u ? (int) (total - first) : 32;
+  const int dim = a->dim, padded = a->padded_dim;
+  const size_t packed_elements = (size_t) 32 * padded;
+  __fp16 *q = (__fp16 *) scratch;
+  __fp16 *k = q + packed_elements;
+  __fp16 *s = k + packed_elements;
+  __fp16 *p = s + 1024;
+  __fp16 *v = p + 1024;
+  __fp16 *pv = v + 1024;
+  uint32_t *bias = (uint32_t *) (pv + 1024);
+  float maximum[32], denominator[32], old_weight[32];
+  size_t offsets[32], query_rows[32];
+  bool key_used[32];
+
+  memset(q, 0, packed_elements * sizeof(*q));
+  memset(bias, 0, 256);
+  for (int r = 0; r < rows; ++r) {
+    const unsigned int logical = first + (unsigned int) r;
+    query_rows[r] = logical / (unsigned int) a->group;
+    const unsigned int head = kv_head * a->group + logical % (unsigned int) a->group;
+    offsets[r] = query_rows[r] * a->qo_stride + (size_t) head * dim;
+    maximum[r] = -INFINITY;
+    denominator[r] = 0;
+    memset(a->out + offsets[r], 0, (size_t) dim * sizeof(float));
+    for (int d = 0; d < dim; ++d) {
+      q[(d / 32) * 1024 + fa68_cell(r, d % 32)] = (__fp16) a->query[offsets[r] + d];
+    }
+  }
+
+  for (int start = 0; start < a->nk; start += 32) {
+    const int cols = a->nk - start < 32 ? a->nk - start : 32;
+    memset(k, 0, packed_elements * sizeof(*k));
+    for (int c = 0; c < cols; ++c) {
+      const __fp16 *key = a->key + (size_t) (start + c) * a->kv_stride + (size_t) kv_head * dim;
+      for (int d = 0; d < dim; ++d) {
+        k[(d / 32) * 1024 + fa68_cell(d % 32, c)] = key[d];
+      }
+    }
+    fa68_dot(s, q, k, padded / 32, bias);
+    memset(p, 0, 1024 * sizeof(*p));
+    memset(key_used, 0, sizeof(key_used));
+    for (int r = 0; r < rows; ++r) {
+      float scores[32];
+      float next_max = maximum[r];
+      const __fp16 *mask = a->mask ? a->mask + query_rows[r] * a->mask_stride + start : NULL;
+      for (int c = 0; c < cols; ++c) {
+        const float add = mask ? (float) mask[c] : 0;
+        scores[c] = add == -INFINITY ? -INFINITY : (float) s[fa68_cell(r, c)] * a->scale + add;
+        next_max = fmaxf(next_max, scores[c]);
+      }
+      const float alpha = maximum[r] == -INFINITY ? 0 :
+                          (next_max == INFINITY ? (maximum[r] == INFINITY ? 1 : 0) :
+                           expf(maximum[r] - next_max));
+      float next_denominator = denominator[r] * alpha;
+      for (int c = 0; c < cols; ++c) {
+        scores[c] = next_max == -INFINITY ? 0 :
+                    (next_max == INFINITY ? (scores[c] == INFINITY ? 1 : 0) :
+                     expf(scores[c] - next_max));
+        next_denominator += scores[c];
+      }
+      const float inv = next_denominator > 0 ? 1.0f / next_denominator : 0;
+      old_weight[r] = denominator[r] * alpha * inv;
+      maximum[r] = next_max;
+      denominator[r] = next_denominator;
+      for (int c = 0; c < cols; ++c) {
+        const float probability = scores[c] * inv;
+        p[fa68_cell(r, c)] = (__fp16) probability;
+        /* Keep predicates in FP32: SDK19 cannot legalize the f16 freeze
+         * introduced by short-circuit evaluation of a half-precision value. */
+        key_used[c] = key_used[c] || probability > 0.0f;
+      }
+    }
+
+    for (int d0 = 0; d0 < dim; d0 += 32) {
+      const int width = dim - d0 < 32 ? dim - d0 : 32;
+      memset(v, 0, 1024 * sizeof(*v));
+      for (int c = 0; c < cols; ++c) {
+        /* A completely masked value may be uninitialized, even NaN. */
+        if (!key_used[c]) continue;
+        const __fp16 *value = a->value + (size_t) (start + c) * a->kv_stride + (size_t) kv_head * dim + d0;
+        for (int d = 0; d < width; ++d) v[fa68_cell(c, d)] = value[d];
+      }
+      fa68_dot(pv, p, v, 1, bias);
+      for (int r = 0; r < rows; ++r) {
+        float *out = a->out + offsets[r] + d0;
+        for (int d = 0; d < width; ++d) {
+          out[d] = out[d] * old_weight[r] + (float) pv[fa68_cell(r, d)];
+        }
+      }
+    }
+  }
+}
+
+#if !defined(FA_V68_HMX_PORTABLE_TEST)
+typedef struct {
+  const fa68_args *args;
+  unsigned int next_task;
+  worker_synctoken_t sync;
+} fa68_shared;
+typedef struct { fa68_shared *shared; uint8_t *scratch; } fa68_job;
+
+static void fa68_worker(void *data, int worker_index) {
+  fa68_job *job = (fa68_job *) data;
+  (void) worker_index;
+  hmx_manager_enable_execution();
+  for (;;) {
+    const unsigned int task = worker_pool_atomic_inc_return(&job->shared->next_task) - 1u;
+    if (task >= job->shared->args->tasks) break;
+    fa68_block(job->shared->args, task, job->scratch);
+  }
+  hmx_manager_disable_execution();
+  worker_pool_synctoken_jobdone(&job->shared->sync);
+}
+#endif
+
+int simple_flash_attn(__fp16 *restrict O, const __fp16 *restrict Q,
+                      const __fp16 *restrict K, const __fp16 *restrict V,
+                      const __fp16 *restrict mask, int qo_len, int kv_len,
+                      int n_heads, int n_kv_heads, int head_dim) {
+  fa68_args args;
+  if (fa68_init(&args, (float *) O, (const float *) Q, K, V, mask,
+                qo_len, kv_len, n_heads, n_kv_heads, head_dim) != 0) return -1;
+#if defined(FA_V68_HMX_PORTABLE_TEST)
+  void *allocation = malloc(FA68_SLOT_BYTES + 2047u);
+  if (!allocation) return -1;
+  uint8_t *scratch = (uint8_t *) (((uintptr_t) allocation + 2047u) & ~(uintptr_t) 2047u);
+  for (unsigned int t = 0; t < args.tasks; ++t) fa68_block(&args, t, scratch);
+  free(allocation);
+  return 0;
+#else
+  unsigned int count = num_hvx128_contexts;
+  if (count > num_workers) count = num_workers;
+  if (count > MAX_NUM_WORKERS) count = MAX_NUM_WORKERS;
+  if (count > args.tasks) count = args.tasks;
+  if (!count) return -1;
+  /* Operators run serially; this scratch reuses the shared VTCM base instead
+   * of permanently reserving space also needed by matmul. */
+  uint8_t *scratch = (uint8_t *) vtcm_manager_get_vtcm_base();
+  const size_t slot_bytes = ((size_t) 128 * args.padded_dim + 8192u + 256u + 2047u) & ~(size_t) 2047u;
+  if (!scratch || (uintptr_t) scratch % 2048u != 0 ||
+      slot_bytes > vtcm_manager_get_usable_size() / count) return -1;
+  fa68_shared shared = { .args = &args, .next_task = 0 };
+  fa68_job jobs[MAX_NUM_WORKERS];
+  worker_pool_synctoken_init(&shared.sync, count);
+  int result = 0;
+  for (unsigned int i = 0; i < count; ++i) {
+    jobs[i].shared = &shared;
+    jobs[i].scratch = scratch + (size_t) i * slot_bytes;
+    worker_pool_job_t job = { .fptr = fa68_worker, .dptr = &jobs[i] };
+    if (worker_pool_submit(NULL, job) != AEE_SUCCESS) {
+      worker_pool_synctoken_jobdone(&shared.sync);
+      result = -1;
+    }
+  }
+  worker_pool_synctoken_wait(&shared.sync);
+  return result;
+#endif
+}
+
+/* Preserve the exported ABI; the v68 implementation above is also used by
+ * callers of this historical entry point. Tests use an independent reference. */
+int naive_flash_attn(float *restrict O, const float *restrict Q,
+                     const __fp16 *restrict K, const __fp16 *restrict V,
+                     const __fp16 *restrict mask, int qo_len, int kv_len,
+                     int n_heads, int n_kv_heads, int head_dim) {
+  return simple_flash_attn((__fp16 *) O, (const __fp16 *) Q, K, V, mask,
+                           qo_len, kv_len, n_heads, n_kv_heads, head_dim);
+}
+
+#else
 #include <assert.h>
 #include <math.h>
 #include <stdbool.h>
@@ -1588,3 +1854,5 @@ int naive_flash_attn(float *restrict O, const float *restrict Q, const __fp16 *r
 #undef Br
 #undef Bc
 #undef D
+
+#endif /* HTP_HMX_V68 */

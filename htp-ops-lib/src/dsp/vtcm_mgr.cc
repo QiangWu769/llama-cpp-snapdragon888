@@ -20,7 +20,7 @@ std::unordered_map<std::string, uint8_t *> reserved_areas;
 
 extern "C" {
 
-void vtcm_manager_setup() {
+int vtcm_manager_setup() {
   using namespace vtcm_manager;
 
   int err;
@@ -30,7 +30,7 @@ void vtcm_manager_setup() {
   err = HAP_compute_res_query_VTCM(0, &total_size, &total_pages, &avail_size, &avail_pages);
   if (err) {
     FARF(ALWAYS, "HAP_compute_res_query_VTCM failed with return code 0x%x", err);
-    return;
+    return -1;
   }
   FARF(ALWAYS, "available VTCM size: %d KiB, total VTCM size: %d KiB", avail_size / 1024, total_size / 1024);
 
@@ -43,13 +43,19 @@ void vtcm_manager_setup() {
   vtcm_mgr_ctx_id = HAP_compute_res_acquire(&req, 10000);  // timeout 10ms
   if (vtcm_mgr_ctx_id == 0) {
     FARF(ALWAYS, "%s: HAP_compute_res_acquire failed", __func__);
-    return;
+    return -1;
   }
 
   vtcm_base = (uint8_t *) HAP_compute_res_attr_get_vtcm_ptr(&req);
+  if (!vtcm_base) {
+    HAP_compute_res_release(vtcm_mgr_ctx_id);
+    vtcm_mgr_ctx_id = 0;
+    return -1;
+  }
   memset(vtcm_base, 0, total_size);
 
   vtcm_reserved_start = vtcm_base + total_size;
+  return 0;
 }
 
 void vtcm_manager_reset() {
@@ -57,7 +63,15 @@ void vtcm_manager_reset() {
 
   if (vtcm_mgr_ctx_id) {
     HAP_compute_res_release(vtcm_mgr_ctx_id);
+    vtcm_mgr_ctx_id = 0;
   }
+  vtcm_base = vtcm_reserved_start = nullptr;
+  reserved_areas.clear();
+}
+
+size_t vtcm_manager_get_usable_size() {
+  using namespace vtcm_manager;
+  return vtcm_base ? (size_t)(vtcm_reserved_start - vtcm_base) : 0;
 }
 
 void *vtcm_manager_get_vtcm_base() {
@@ -67,7 +81,8 @@ void *vtcm_manager_get_vtcm_base() {
 void *vtcm_manager_reserve_area(const char *name, size_t size, size_t alignment) {
   using namespace vtcm_manager;
 
-  if (!name || (alignment & (alignment - 1)) != 0) {
+  if (!vtcm_base || !name || !alignment || size > vtcm_manager_get_usable_size() ||
+      (alignment & (alignment - 1)) != 0) {
     return nullptr;
   }
 

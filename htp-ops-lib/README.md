@@ -1,3 +1,5 @@
+> Snapdragon 888 / Hexagon v68 adaptation: see the [root README](../README.md). The upstream documentation below is preserved for provenance.
+
 # Custom Op library for Qualcomm's Hexagon Tensor Processor
 
 This is the code repository for the paper [Scaling LLM Test-Time Compute with Mobile NPU on Smartphones](https://arxiv.org/abs/2509.23324). It contains an operator library supporting LLM inference on Qualcomm Hexagon NPU, which needs to be used with the [llama.cpp main repository](https://github.com/haozixu/llama.cpp-npu). This project is primarily a research prototype and is not recommended for production environments.

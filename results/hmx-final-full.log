@@ -1,0 +1,56 @@
+V68_RPC_TEST reference=half-input/half-output suite=full (verify DSP dispatch logs separately)
+PASS F16-MATMUL M=5 K=96 N=96 elements=480 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING F16-MATMUL M=5 K=96 N=96 reference_ms=1.610 rpc_wall_ms=0.261 reference_k_round_chunk=0
+PASS F16-MATMUL M=1 K=896 N=896 elements=896 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING F16-MATMUL M=1 K=896 N=896 reference_ms=30.013 rpc_wall_ms=0.246 reference_k_round_chunk=0 expected_fp16_conversion_max_abs=0.0464935
+PASS F16-MATMUL M=1 K=4864 N=896 elements=896 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING F16-MATMUL M=1 K=4864 N=896 reference_ms=68.296 rpc_wall_ms=0.834 reference_k_round_chunk=0 expected_fp16_conversion_max_abs=0.118591
+PASS F16-MATMUL M=5 K=896 N=896 elements=4480 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING F16-MATMUL M=5 K=896 N=896 reference_ms=14.047 rpc_wall_ms=0.182 reference_k_round_chunk=0
+PASS F16-MATMUL M=5 K=4864 N=896 elements=4480 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING F16-MATMUL M=5 K=4864 N=896 reference_ms=76.171 rpc_wall_ms=0.989 reference_k_round_chunk=0
+PASS F16-MATMUL M=32 K=896 N=896 elements=28672 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING F16-MATMUL M=32 K=896 N=896 reference_ms=44.786 rpc_wall_ms=0.337 reference_k_round_chunk=0
+PASS F16-MATMUL M=32 K=4864 N=896 elements=28672 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING F16-MATMUL M=32 K=4864 N=896 reference_ms=245.491 rpc_wall_ms=1.639 reference_k_round_chunk=0
+PASS F16-MATMUL M=33 K=896 N=896 elements=29568 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING F16-MATMUL M=33 K=896 N=896 reference_ms=46.021 rpc_wall_ms=0.360 reference_k_round_chunk=0
+PASS F16-MATMUL M=33 K=4864 N=896 elements=29568 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING F16-MATMUL M=33 K=4864 N=896 reference_ms=250.776 rpc_wall_ms=2.121 reference_k_round_chunk=0
+PASS Q8_0-MATMUL M=5 K=96 N=96 elements=480 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING Q8_0-MATMUL M=5 K=96 N=96 reference_ms=0.122 rpc_wall_ms=0.175 reference_k_round_chunk=0
+PASS Q8_0-MATMUL M=1 K=896 N=896 elements=896 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING Q8_0-MATMUL M=1 K=896 N=896 reference_ms=11.170 rpc_wall_ms=2.143 reference_k_round_chunk=0 expected_fp16_conversion_max_abs=0.132202
+PASS Q8_0-MATMUL M=1 K=4864 N=896 elements=896 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING Q8_0-MATMUL M=1 K=4864 N=896 reference_ms=60.610 rpc_wall_ms=11.086 reference_k_round_chunk=0 expected_fp16_conversion_max_abs=0.400391
+PASS Q8_0-MATMUL M=5 K=896 N=896 elements=4480 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING Q8_0-MATMUL M=5 K=896 N=896 reference_ms=22.186 rpc_wall_ms=2.114 reference_k_round_chunk=0
+PASS Q8_0-MATMUL M=5 K=4864 N=896 elements=4480 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING Q8_0-MATMUL M=5 K=4864 N=896 reference_ms=81.983 rpc_wall_ms=11.216 reference_k_round_chunk=0
+PASS Q8_0-MATMUL M=32 K=896 N=896 elements=28672 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING Q8_0-MATMUL M=32 K=896 N=896 reference_ms=58.272 rpc_wall_ms=2.292 reference_k_round_chunk=0
+PASS Q8_0-MATMUL M=32 K=4864 N=896 elements=28672 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING Q8_0-MATMUL M=32 K=4864 N=896 reference_ms=247.163 rpc_wall_ms=12.055 reference_k_round_chunk=0
+PASS Q8_0-MATMUL M=33 K=896 N=896 elements=29568 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING Q8_0-MATMUL M=33 K=896 N=896 reference_ms=55.209 rpc_wall_ms=2.312 reference_k_round_chunk=0
+PASS Q8_0-MATMUL M=33 K=4864 N=896 elements=29568 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING Q8_0-MATMUL M=33 K=4864 N=896 reference_ms=253.526 rpc_wall_ms=22.850 reference_k_round_chunk=0
+PASS IQ4_NL-MATMUL M=5 K=96 N=96 elements=480 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING IQ4_NL-MATMUL M=5 K=96 N=96 reference_ms=0.240 rpc_wall_ms=0.200 reference_k_round_chunk=0
+PASS IQ4_NL-MATMUL M=1 K=896 N=896 elements=896 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING IQ4_NL-MATMUL M=1 K=896 N=896 reference_ms=19.039 rpc_wall_ms=2.107 reference_k_round_chunk=0 expected_fp16_conversion_max_abs=0.123688
+PASS IQ4_NL-MATMUL M=1 K=4864 N=896 elements=896 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING IQ4_NL-MATMUL M=1 K=4864 N=896 reference_ms=74.206 rpc_wall_ms=10.907 reference_k_round_chunk=0 expected_fp16_conversion_max_abs=0.313782
+PASS IQ4_NL-MATMUL M=5 K=896 N=896 elements=4480 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING IQ4_NL-MATMUL M=5 K=896 N=896 reference_ms=24.463 rpc_wall_ms=2.084 reference_k_round_chunk=0
+PASS IQ4_NL-MATMUL M=5 K=4864 N=896 elements=4480 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING IQ4_NL-MATMUL M=5 K=4864 N=896 reference_ms=85.708 rpc_wall_ms=11.094 reference_k_round_chunk=0
+PASS IQ4_NL-MATMUL M=32 K=896 N=896 elements=28672 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING IQ4_NL-MATMUL M=32 K=896 N=896 reference_ms=53.470 rpc_wall_ms=2.187 reference_k_round_chunk=0
+PASS IQ4_NL-MATMUL M=32 K=4864 N=896 elements=28672 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING IQ4_NL-MATMUL M=32 K=4864 N=896 reference_ms=245.401 rpc_wall_ms=11.721 reference_k_round_chunk=0
+PASS IQ4_NL-MATMUL M=33 K=896 N=896 elements=29568 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING IQ4_NL-MATMUL M=33 K=896 N=896 reference_ms=59.633 rpc_wall_ms=2.308 reference_k_round_chunk=0
+PASS IQ4_NL-MATMUL M=33 K=4864 N=896 elements=29568 bad=0 max_abs_error=0 rmse=0 max_error_over_bound=0 atol=0.01 rtol=0.001
+TIMING IQ4_NL-MATMUL M=33 K=4864 N=896 reference_ms=251.570 rpc_wall_ms=22.761 reference_k_round_chunk=0
+V68_RPC_TEST PASS failures=0 cases=27

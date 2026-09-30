@@ -98,9 +98,11 @@ static void worker_pool_main(void *context) {
   unsigned int      mask   = me->job_queue_mask;
   qurt_mutex_t     *mutex  = &me->queued_jobs_mutex;
 
+#if HTP_USE_HMX
   if (info->allow_hmx) {
     hmx_manager_enable_execution();
   }
+#endif
 
   while (1) {
     qurt_mutex_lock(mutex);  // mutex only allows 1 thread to wait on signal at a time. QuRT restriction.
@@ -124,9 +126,11 @@ static void worker_pool_main(void *context) {
     // else ignore
   }
 
+#if HTP_USE_HMX
   if (info->allow_hmx) {
-    hmx_manager_enable_execution();
+    hmx_manager_disable_execution();
   }
+#endif
   qurt_thread_exit(0);
 }
 

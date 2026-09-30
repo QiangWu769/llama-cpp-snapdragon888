@@ -1,0 +1,19 @@
+# Generated builds, SDKs, models, local environments and device logs
+/logs/
+/local-config/
+/models/
+**/__pycache__/
+*.pyc
+**/.venv/
+**/build-*/
+**/android_Release*/
+**/hexagon_Release*/
+*.gguf
+*.safetensors
+*.bin
+*.so
+*.so.*
+*.tar.gz
+.env
+.env.*
+!*.example

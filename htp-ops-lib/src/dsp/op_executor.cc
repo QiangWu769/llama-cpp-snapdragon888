@@ -160,7 +160,7 @@ int execute_op_simple(struct OpComputeRequest *req) {
 
         size_t qo_size   = qo_len * n_heads * head_dim * sizeof(float);
         size_t kv_size   = kv_len * n_kv_heads * head_dim * sizeof(__fp16);
-        size_t mask_size = qo_len * kv_len * sizeof(__fp16);
+        size_t mask_size = (size_t) qo_len * ((kv_len + 63) & ~63) * sizeof(__fp16);
 
         add_buffer(out_bufs, params->o, qo_size);
         add_buffer(in_bufs, params->q, qo_size);
@@ -198,6 +198,7 @@ int execute_op_simple(struct OpComputeRequest *req) {
       break;
 
     default:
+      ret = -1;
       break;
   }
   return ret;

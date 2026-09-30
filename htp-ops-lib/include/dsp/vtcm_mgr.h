@@ -7,10 +7,11 @@
 extern "C" {
 #endif
 
-void vtcm_manager_setup();
+int vtcm_manager_setup();
 void vtcm_manager_reset();
 
 void *vtcm_manager_get_vtcm_base();
+size_t vtcm_manager_get_usable_size();
 
 void *vtcm_manager_reserve_area(const char *name, size_t size, size_t alignment);
 void *vtcm_manager_query_area(const char *name);
