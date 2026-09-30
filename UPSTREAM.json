@@ -1,0 +1,10 @@
+{
+  "llama.cpp-npu": {
+    "url": "https://github.com/haozixu/llama.cpp-npu.git",
+    "commit": "57e34a34e0293894bd026280875703561c0106ef"
+  },
+  "htp-ops-lib": {
+    "url": "https://github.com/haozixu/htp-ops-lib.git",
+    "commit": "85eb88edcafd35afff1a43606a4c47eec9a0ca0b"
+  }
+}
