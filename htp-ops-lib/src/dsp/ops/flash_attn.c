@@ -1698,7 +1698,7 @@ int simple_flash_attn(__fp16 *restrict O, const __fp16 *restrict Q, const __fp16
 
 int naive_flash_attn(float *restrict O, const float *restrict Q, const __fp16 *restrict K, const __fp16 *restrict V,
                      const __fp16 *restrict mask, int qo_len, int kv_len, int n_heads, int n_kv_heads, int head_dim) {
-  // 参数校验
+  // Validate parameters
   if (n_heads % n_kv_heads != 0) {
     return -1;
   }
@@ -1713,13 +1713,13 @@ int naive_flash_attn(float *restrict O, const float *restrict Q, const __fp16 *r
   const size_t qo_stride = n_heads * head_dim;
   const size_t kv_stride = n_kv_heads * head_dim;
 
-  // 计算特征缩放因子
+  // Compute the attention scaling factor
   const float qk_scale = 1.0f / sqrtf(head_dim) * 1.44269504f;
 
   for (int h = 0; h < n_heads; ++h) {
     const int h_kv = h / gqa_factor;
 
-    // 分块处理Q序列
+    // Process the Q sequence in blocks
     for (int i = 0; i < qo_len; i += Br) {
       const int q_start = i;
       const int q_end   = (i + Br) < qo_len ? (i + Br) : qo_len;
@@ -1728,7 +1728,7 @@ int naive_flash_attn(float *restrict O, const float *restrict Q, const __fp16 *r
       static float Qi[Br][D];
       static float Oi[Br][D];
 
-      // 加载当前Q块 (fp32)
+      // Load the current Q block (FP32)
       const float *Q_src = Q + q_start * qo_stride + h * head_dim;
       for (int r = 0; r < br; ++r) {
         for (int d = 0; d < head_dim; ++d) {
@@ -1736,7 +1736,7 @@ int naive_flash_attn(float *restrict O, const float *restrict Q, const __fp16 *r
         }
       }
 
-      // 初始化输出块和中间状态
+      // Initialize the output block and intermediate state
       static float mi[Br];
       static float li[Br];
       for (int r = 0; r < br; ++r) {
@@ -1747,13 +1747,13 @@ int naive_flash_attn(float *restrict O, const float *restrict Q, const __fp16 *r
         }
       }
 
-      // 分块处理KV序列
+      // Process the KV sequence in blocks
       for (int j = 0; j < kv_len; j += Bc) {
         const int k_start = j;
         const int k_end   = (j + Bc) < kv_len ? (j + Bc) : kv_len;
         const int bc      = k_end - k_start;
 
-        // 加载当前K块并转换为fp32
+        // Load the current K block and convert it to FP32
         static float  Kj[Bc][D];
         const __fp16 *K_src = K + k_start * kv_stride + h_kv * head_dim;
         for (int c = 0; c < bc; ++c) {
@@ -1762,7 +1762,7 @@ int naive_flash_attn(float *restrict O, const float *restrict Q, const __fp16 *r
           }
         }
 
-        // 计算注意力分数块
+        // Compute the attention score block
         static float Sij[Br][Bc];
         for (int r = 0; r < br; ++r) {
           for (int c = 0; c < bc; ++c) {
@@ -1774,7 +1774,7 @@ int naive_flash_attn(float *restrict O, const float *restrict Q, const __fp16 *r
           }
         }
 
-        // 应用掩码（如果存在）
+        // Apply the mask, if present
         if (mask != NULL) {
           for (int r = 0; r < br; ++r) {
             for (int c = 0; c < bc; ++c) {
@@ -1784,7 +1784,7 @@ int naive_flash_attn(float *restrict O, const float *restrict Q, const __fp16 *r
           }
         }
 
-        // 加载当前V块并转换为fp32
+        // Load the current V block and convert it to FP32
         static float  Vj[Bc][D];
         const __fp16 *V_src = V + k_start * kv_stride + h_kv * head_dim;
         for (int c = 0; c < bc; ++c) {
@@ -1793,9 +1793,9 @@ int naive_flash_attn(float *restrict O, const float *restrict Q, const __fp16 *r
           }
         }
 
-        // 在线softmax更新
+        // Update the online softmax
         for (int r = 0; r < br; ++r) {
-          // 当前块最大值
+          // Maximum of the current block
           float m_curr = -INFINITY;
           for (int c = 0; c < bc; ++c) {
             if (Sij[r][c] > m_curr) {
@@ -1803,10 +1803,10 @@ int naive_flash_attn(float *restrict O, const float *restrict Q, const __fp16 *r
             }
           }
 
-          // 全局最大值
+          // Global maximum
           const float m_new = fmaxf(mi[r], m_curr);
 
-          // 计算指数和
+          // Compute exponentials and their sum
           float exp_sum = 0.0f;
           float exp_values[Bc];
           for (int c = 0; c < bc; ++c) {
@@ -1814,17 +1814,17 @@ int naive_flash_attn(float *restrict O, const float *restrict Q, const __fp16 *r
             exp_sum += exp_values[c];
           }
 
-          // 更新累积因子
+          // Update accumulation factors
           const float f = exp2f(mi[r] - m_new);
 
           const float l_new = li[r] * f + exp_sum;
 
-          // 更新输出值
+          // Update output values
           for (int d = 0; d < head_dim; ++d) {
-            // 校正历史累积值
+            // Rescale previously accumulated values
             Oi[r][d] *= f;
 
-            // 累加新值
+            // Accumulate new values
             float sum = 0.0f;
             for (int c = 0; c < bc; ++c) {
               sum += exp_values[c] * Vj[c][d];
@@ -1832,13 +1832,13 @@ int naive_flash_attn(float *restrict O, const float *restrict Q, const __fp16 *r
             Oi[r][d] += sum;
           }
 
-          // 更新中间状态
+          // Update intermediate state
           mi[r] = m_new;
           li[r] = l_new;
         }
       }
 
-      // 写入最终输出
+      // Store the final output
       float *O_dst = O + q_start * qo_stride + h * head_dim;
       for (int r = 0; r < br; ++r) {
         const float scale = 1.0f / li[r];
