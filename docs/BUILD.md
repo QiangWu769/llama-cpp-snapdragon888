@@ -48,7 +48,10 @@ HMX and HVX share the same Android llama HTP transport and therefore use the sam
 
 ## 3. Model Conversion
 
-**Qwen2.5-0.5B** has been validated. Start with a directory containing its original Hugging Face weights. HTP requires the original project's 32×32 permuted weight layout; an arbitrary standard GGUF cannot be substituted directly. This port does not modify the converter or quantizer and does not add a GGUF layout marker.
+**Qwen2.5-0.5B** has been validated. The later
+[Qwen2.5-1.5B experiment](LARGER-MODEL.md) uses mixed Q4_0+F16 storage,
+`--m-aware-vtcm` and optional mapping settings; full F16 mapping did not
+complete on this phone. Start with a directory containing its original Hugging Face weights. HTP requires the original project's 32×32 permuted weight layout; an arbitrary standard GGUF cannot be substituted directly. This port does not modify the converter or quantizer and does not add a GGUF layout marker.
 
 ```sh
 python3 -m venv .venv
@@ -121,7 +124,7 @@ python3 tools/device.py --backend cpu -- ./llama-bench \
 
 The benchmark keeps the default warmup and disables tracing. Compare runs using the same original model, thread counts, and sequence lengths, and record temperature, clock frequencies, and repetition counts. The existing short runs in this repository did not control temperature and must not be interpreted as peak hardware throughput.
 
-For a small numerical comparison, use `llama-perplexity` with standard CPU F16 and the corresponding HTP F16 model. Save a CPU baseline for fixed text with `-c 128 -b 32 -ub 32 -t 4 -tb 4 -fa --chunks 1 --save-all-logits <absolute-path-on-phone>`, then use `--kl-divergence --kl-divergence-base <same-path>` on HMX to read the same tokens. The input text must encode to at least 256 tokens. This fork saves scaled uint16 log probabilities, not raw FP32 logits; one 128-token chunk compares 63 positions. See [results](../results/README.md) for the recorded token IDs and summaries.
+For a small numerical comparison, use `llama-perplexity` with standard CPU F16 and the corresponding HTP F16 model. Save a CPU baseline for fixed text with `-c 128 -b 32 -ub 32 -t 4 -tb 4 -fa --chunks 1 --save-all-logits <absolute-path-on-phone>`, then use `--kl-divergence --kl-divergence-base <same-path>` on HMX to read the same tokens. The tested `llama-perplexity` does not accept the CLI-only `--no-warmup` flag; run it from a writable directory for its relative cache. The input text must encode to at least 256 tokens. This fork saves scaled uint16 log probabilities, not raw FP32 logits; one 128-token chunk compares 63 positions. See [results](../results/README.md) for the recorded token IDs and summaries.
 
 ## 7. Troubleshooting
 

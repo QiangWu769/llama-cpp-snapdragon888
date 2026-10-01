@@ -23,7 +23,7 @@ static inline bool htp_f16_plan_vtcm(size_t usable_size, int m, int k, int n,
     return false;
   }
   *out = (htp_f16_vtcm_layout) { 0 };
-  if (m <= 0 || k <= 0 || n <= 0 || k % 32 || n % 32) {
+  if (m <= 0 || k <= 0 || n <= 0 || k % 32 || n % 32 || !activation_limit) {
     return false;
   }
 
@@ -35,9 +35,14 @@ static inline bool htp_f16_plan_vtcm(size_t usable_size, int m, int k, int n,
     return false;
   }
 
-  /* Keep the established maximum row chunk. Reclaim its unused allocation
-   * rather than enlarging the prefill row footprint or splitting K. */
-  const uint64_t row_limit = (uint64_t) activation_limit / ((uint64_t) k * 2) / 32 * 32;
+  /* Preserve the established row cap whenever one physical row tile fits.
+   * Wider K needs at least 32 rows even for logical M=1. Expand only to that
+   * minimum, then require weight, activation, output and control to fit the
+   * actual VTCM together; this does not change the quantized-path areas. */
+  const uint64_t minimum_activation_size = (uint64_t) k * 2 * 32;
+  const uint64_t activation_budget = (uint64_t) activation_limit > minimum_activation_size
+                                       ? (uint64_t) activation_limit : minimum_activation_size;
+  const uint64_t row_limit = activation_budget / ((uint64_t) k * 2) / 32 * 32;
   uint64_t requested_rows = (uint64_t) m < row_limit ? (uint64_t) m : row_limit;
   requested_rows = (requested_rows + 31) / 32 * 32;
   if (!requested_rows) {

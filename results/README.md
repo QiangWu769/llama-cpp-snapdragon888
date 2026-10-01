@@ -1,5 +1,11 @@
 # Recorded Snapdragon 888 results
 
+New [larger-model evidence](../docs/LARGER-MODEL.md) compares Qwen2.5-0.5B
+and Qwen2.5-1.5B-Instruct with mixed Q4_0+F16 storage and phone-local
+activity collection. It also records a larger-model HMX attention discrepancy
+and the CPU-attention isolation. The historical operator/model records below
+retain their original scope and precision.
+
 New instruction-level evidence is in
 [hmx-features-2026-09-29](hmx-features-2026-09-29): 87 independent phone cases
 cover V81 feature compatibility with the v68 legacy HMX interface. This uses
@@ -75,7 +81,9 @@ See the [operator test documentation](../htp-ops-lib/tests/v68/README.md)
 for full shapes, input ranges, guards and acceptance rules.
 
 Q4_0 is **not included** in these 40 HMX cases. The retained HVX path has
-separate Q4_0 coverage; no full Q4_0 model result is claimed here. Per-case
+separate Q4_0 coverage; no full Q4_0 model result is claimed by those historical records. The later
+[larger-model experiment](../docs/LARGER-MODEL.md) provides separate
+Q4_0+F16 model results. Per-case
 `rpc_wall_ms` includes transport and operator overhead and is a diagnostic,
 not isolated HMX throughput.
 

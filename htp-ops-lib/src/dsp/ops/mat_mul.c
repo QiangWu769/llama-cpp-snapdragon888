@@ -955,6 +955,8 @@ int hmx_mat_mul_permuted_w16a32(float *restrict dst, const float *restrict activ
 #if HTP_HMX_V68 && HTP_F16_M_AWARE_VTCM
   htp_f16_vtcm_layout layout;
   const size_t usable_size = vtcm_manager_get_usable_size();
+  /* The F16 planner may exceed this preferred activation cap only to fit one
+   * physical 32-row tile for wider K. Quantized-path area sizes stay fixed. */
   if (!htp_f16_plan_vtcm(usable_size, m, k, n, ACTIVATION_AREA_SIZE, &layout) ||
       !htp_f16_layout_address_fits((uintptr_t) vtcm_ptr, usable_size, &layout)) {
     return -1;

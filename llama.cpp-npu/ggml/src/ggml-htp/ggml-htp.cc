@@ -1,5 +1,6 @@
 #include "ggml-htp.h"
 #include "ggml-htp-op-support.h"
+#include "htp-buffer-config.h"
 
 #include <dlfcn.h>
 
@@ -20,7 +21,7 @@
 static std::atomic<ggml_backend_htp_context *> initialized_context { nullptr };
 
 // real backend initialization work is done here. ggml_backend_htp_init is only a wrapper
-ggml_backend_htp_context::ggml_backend_htp_context() : mapper(3 * 1024UL * 1024 * 1024, true) {
+ggml_backend_htp_context::ggml_backend_htp_context() : mapper(RpcMemMapper::configured_map_budget(), true) {
     fprintf(stderr, "Initializing HTP backend... (You should see this once)\n");
 
     const char * reuse_pool = getenv("HTP_REUSE_THREADPOOL");
@@ -249,8 +250,18 @@ static bool ggml_backend_htp_buffer_type_is_host(ggml_backend_buffer_type_t buft
 }
 
 static size_t ggml_backend_htp_buffer_type_get_max_size(ggml_backend_buffer_type_t buft) {
-    // TODO(hzx): change max size
-    return 256 * size_t(1024 * 1024);
+    // GGML's context allocator already splits buffers at this cap and rejects
+    // an individual tensor that cannot fit; never split a tensor's storage.
+    static const size_t maximum = [] {
+        const char *value = std::getenv("GGML_HTP_MAX_BUFFER_MB");
+        size_t bytes;
+        if (!ggml_htp_parse_max_buffer_mb(value, &bytes)) {
+            GGML_ABORT("GGML_HTP_MAX_BUFFER_MB must be a decimal MiB value from 1 to 256");
+        }
+        if (value) fprintf(stderr, "HTP: whole-tensor buffer packing cap=%zu MiB\n", bytes / (1024UL * 1024));
+        return bytes;
+    }();
+    return maximum;
 
     GGML_UNUSED(buft);
 }

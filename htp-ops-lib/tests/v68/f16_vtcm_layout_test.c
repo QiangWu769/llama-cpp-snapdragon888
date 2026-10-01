@@ -12,6 +12,7 @@ enum { ACTIVATION_LIMIT = 512 * 1024, PHONE_USABLE = 4 * 1024 * 1024 - 256 * 102
  * than reproducing the production division that selects the largest N. */
 static bool oracle(size_t usable, int m, int k, int n, size_t *best_rows, size_t *best_cols) {
   size_t row_limit = ACTIVATION_LIMIT / ((size_t) k * 2) / 32 * 32;
+  if (!row_limit) row_limit = 32;
   size_t requested = ((size_t) m + 31) / 32 * 32;
   if (row_limit > requested) row_limit = requested;
   uint64_t best_cost = UINT64_MAX;
@@ -45,7 +46,9 @@ static void check(int m, int k, int n, size_t usable) {
   assert(l.activation_size == rows * (size_t) k * 2);
   assert(l.output_size == rows * cols * 2);
   assert(l.total_size == l.weight_size + l.activation_size + l.output_size + 256);
-  assert(l.total_size <= usable && l.activation_size <= ACTIVATION_LIMIT);
+  const size_t activation_budget = (size_t) k * 2 * 32 > ACTIVATION_LIMIT
+                                     ? (size_t) k * 2 * 32 : ACTIVATION_LIMIT;
+  assert(l.total_size <= usable && l.activation_size <= activation_budget);
   assert(l.weight_size % 2048 == 0 && l.activation_size % 2048 == 0 && l.output_size % 2048 == 0);
 
   /* Use the actual sequential allocation boundaries, guard both ends and
@@ -96,7 +99,8 @@ static void check(int m, int k, int n, size_t usable) {
 
 int main(void) {
   const int ms[] = { 1, 2, 5, 31, 32, 33, 63, 64, 65, 128, 129, 288, 289 };
-  const int shapes[][2] = { {32,32}, {96,96}, {896,128}, {896,896}, {896,4864}, {4864,896}, {8192,32} };
+  const int shapes[][2] = { {32,32}, {96,96}, {896,128}, {896,896}, {896,4864}, {4864,896}, {8192,32},
+                           {8224,32}, {8960,1536}, {11008,2048} };
   const size_t capacities[] = { 0, 6399, 6400, 512 * 1024, 1536 * 1024 + 256, PHONE_USABLE };
   unsigned cases = 0;
   for (size_t a = 0; a < sizeof(ms) / sizeof(ms[0]); ++a)
@@ -114,12 +118,29 @@ int main(void) {
   assert(!htp_f16_plan_vtcm(SIZE_MAX, INT_MAX, 32, 32, ACTIVATION_LIMIT, &l));
   assert(!htp_f16_plan_vtcm(SIZE_MAX, 1, INT_MAX - 31, INT_MAX - 31, ACTIVATION_LIMIT, &l));
   assert(!htp_f16_plan_vtcm(PHONE_USABLE, 1, 896, 896, 0, &l));
-  assert(!htp_f16_plan_vtcm(PHONE_USABLE, 1, 8224, 32, ACTIVATION_LIMIT, &l));
+  /* Boundary K that previously rounded the preferred row cap down to zero. */
+  assert(htp_f16_plan_vtcm(PHONE_USABLE, 1, 8224, 32, ACTIVATION_LIMIT, &l));
+  assert(l.m_chunk_n_rows == 32 && l.activation_size == 32 * 8224 * 2);
   assert(htp_f16_plan_vtcm(SIZE_MAX, 1, 32, 1048576, ACTIVATION_LIMIT, &l));
   assert(l.weight_size <= 0xFFFFFF && l.n_chunk_n_cols == 262112);
   assert(htp_f16_plan_vtcm(PHONE_USABLE, 1, 4864, 896, ACTIVATION_LIMIT, &l));
   assert(l.m_chunk_n_rows == 32 && l.n_chunk_n_cols == 352);
   assert(l.activation_size == 32 * 4864 * 2); /* Never allocate only one row. */
+  /* Wider FFN-down shapes from the larger-model experiment. The minimum is
+   * independently counted as two input tiles plus one output and control. */
+  const int wide_shapes[][2] = { {8960,1536}, {11008,2048} };
+  for (size_t i = 0; i < sizeof(wide_shapes) / sizeof(wide_shapes[0]); ++i) {
+    const int k = wide_shapes[i][0], n = wide_shapes[i][1];
+    const size_t minimum = 2 * ((size_t) 32 * k + (size_t) 32 * k + 32 * 32) + 256;
+    assert(!htp_f16_plan_vtcm(minimum - 1, 1, k, n, ACTIVATION_LIMIT, &l));
+    assert(htp_f16_plan_vtcm(minimum, 1, k, n, ACTIVATION_LIMIT, &l));
+    assert(l.m_chunk_n_rows == 32 && l.n_chunk_n_cols == 32 && l.total_size == minimum);
+    assert(l.activation_size == (size_t) 32 * k * 2);
+    assert(htp_f16_plan_vtcm(PHONE_USABLE, 128, k, n, ACTIVATION_LIMIT, &l));
+    assert(l.m_chunk_n_rows == 32 && l.activation_size == (size_t) 32 * k * 2);
+    assert(l.total_size <= PHONE_USABLE && l.n_chunk_n_cols >= 32);
+  }
+  assert(htp_f16_plan_vtcm(PHONE_USABLE, 1, 4864, 896, ACTIVATION_LIMIT, &l));
   assert(!htp_f16_layout_address_fits(0, PHONE_USABLE, &l));
   assert(!htp_f16_layout_address_fits(2049, PHONE_USABLE, &l));
   assert(!htp_f16_layout_address_fits(2048, l.total_size - 1, &l));

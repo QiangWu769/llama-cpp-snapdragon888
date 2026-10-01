@@ -17,6 +17,10 @@ int prepare_tensor_rpcmem_mapping(const struct ggml_tensor * dst);
 #    include <unordered_map>
 
 struct RpcMemMapper {
+    // GGML_HTP_MAP_BUDGET_MB is a positive decimal MiB cache budget. The
+    // default stays 3 GiB; pending evictions finish after each DSP request.
+    static size_t configured_map_budget();
+
     RpcMemMapper() : max_active_map_size{ (size_t) -1 }, active_map_size{ 0 }, defer_unmap{ false } {}
 
     RpcMemMapper(size_t max_size, bool defer_unmap_ops) :

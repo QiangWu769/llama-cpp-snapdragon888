@@ -11,6 +11,13 @@ against controlled DSP duty cycles, distinguishes SDK percentages from elapsed
 activity, and corrects a version-specific timestamp bias before aligning inference
 phases. The experiment includes source and measured evidence.
 
+The [1.5B model experiment](docs/LARGER-MODEL.md) adds a wider-K FP16 VTCM
+check and optional mapping controls. Qwen2.5-1.5B-Instruct runs with mixed
+Q4_0+F16 weights; its full F16 model hits a host DMA mapping failure. The
+experiment reports phone-local HMX/HVX activity and independent sequence widths.
+HMX activity remains low. Switching attention to CPU substantially reduces the
+measured numerical drift while retaining HMX GEMMs; both outcomes are recorded.
+
 ## What changed from upstream to run on Snapdragon 888?
 
 The upstream README requires Snapdragon 8 Gen 2 or newer and recommends `DSP_ARCH=v73`. This port required more than changing the compilation target to `v68`:

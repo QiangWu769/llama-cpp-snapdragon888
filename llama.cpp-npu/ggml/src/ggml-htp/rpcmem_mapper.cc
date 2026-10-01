@@ -1,6 +1,8 @@
 #include "rpcmem_mapper.h"
 
 #include <algorithm>
+#include <cstdlib>
+#include <limits>
 #include <unordered_set>
 #include <vector>
 
@@ -9,11 +11,32 @@
 #include "ggml-htp-impl.h"
 #include "ggml-htp.h"
 
+size_t RpcMemMapper::configured_map_budget() {
+    constexpr size_t mib = 1024UL * 1024;
+    const char *value = std::getenv("GGML_HTP_MAP_BUDGET_MB");
+    if (!value) return 3 * 1024UL * mib;
+    const size_t maximum = std::numeric_limits<size_t>::max() / mib;
+    size_t budget_mib = 0;
+    if (!value[0]) GGML_ABORT("GGML_HTP_MAP_BUDGET_MB must be a positive decimal MiB value");
+    for (const char *p = value; *p; ++p) {
+        if (*p < '0' || *p > '9' || budget_mib > (maximum - size_t(*p - '0')) / 10) {
+            GGML_ABORT("GGML_HTP_MAP_BUDGET_MB must be a positive decimal MiB value fitting size_t");
+        }
+        budget_mib = budget_mib * 10 + size_t(*p - '0');
+    }
+    if (!budget_mib) GGML_ABORT("GGML_HTP_MAP_BUDGET_MB must be greater than zero");
+    fprintf(stderr, "HTP: active FastRPC mapping cache budget=%zu MiB; deferred evictions complete per DSP request\n",
+            budget_mib);
+    return budget_mib * mib;
+}
+
 void RpcMemMapper::validate(const ggml_tensor * dst) {
     std::vector<ggml_backend_buffer *> buffers;
+    std::unordered_set<void *> step_buffers;
 
     auto add_buffer = [&](ggml_backend_buffer * buf) {
-        if (ggml_backend_buft_is_rpcmem(buf->buft)) {
+        if (buf && ggml_backend_buft_is_rpcmem(buf->buft) &&
+            step_buffers.insert(ggml_backend_buffer_get_base(buf)).second) {
             buffers.push_back(buf);
         }
     };
@@ -25,6 +48,18 @@ void RpcMemMapper::validate(const ggml_tensor * dst) {
         }
     }
     add_buffer(dst->buffer);
+
+    // Check the complete unique working set before changing mappings or LRU
+    // state. Checking only new buffers could evict a source needed by this op.
+    size_t step_size = 0;
+    for (const auto *buf : buffers) {
+        if (buf->size > max_active_map_size - step_size) {
+            GGML_ABORT("HTP: tensor %s requires more than the FastRPC map cache budget "
+                       "(%zu bytes already required, next buffer %zu bytes, budget %zu bytes); "
+                       "increase GGML_HTP_MAP_BUDGET_MB", dst->name, step_size, buf->size, max_active_map_size);
+        }
+        step_size += buf->size;
+    }
 
     size_t required_size = 0;
     for (auto * buf : buffers) {
@@ -39,14 +74,21 @@ void RpcMemMapper::validate(const ggml_tensor * dst) {
         }
     }
 
-    GGML_ASSERT(required_size <= max_active_map_size);
-    while (active_map_size + required_size > max_active_map_size) {
+    while (active_map_size > max_active_map_size - required_size) {
         // remove least recent used mapping
+        if (accessed_bufs.empty()) {
+            GGML_ABORT("HTP: no cached mapping can be evicted within the configured budget");
+        }
         void * buf_base     = accessed_bufs.back();
+        if (step_buffers.count(buf_base)) {
+            GGML_ABORT("HTP: refusing to evict a mapping required by tensor %s", dst->name);
+        }
         auto [fd, buf_size] = buf_mapping.at(buf_base);
 
         if (defer_unmap) {
-            // We assume slightly exceeding the planned max_active_map_size is acceptable
+            // DSP HAP references are released by the synchronous request, then
+            // the host completes these unmaps. Physical mappings can briefly
+            // exceed the active cache budget by this step's evicted buffers.
             pending_unmap_reqs.emplace_back(fd, buf_base, buf_size);
         } else {
             // fprintf(stderr, "rpcmem_mapper: removing memory mapping for rpcmem buffer %p, size %.2f MiB, fd %d\n", buf_base,
@@ -216,6 +258,8 @@ void RpcMemMapper::retire_buffer_mapping(void *base) {
 
 void RpcMemMapper::dump_state() const {
     fprintf(stderr, "total %d fastrpc_mmap + fastrpc_munmap ops\n", n_map_ops);
+    fprintf(stderr, "active map bytes=%zu; configured cache budget bytes=%zu\n",
+            active_map_size, max_active_map_size);
 
     if (!buf_mapping.empty()) {
         fprintf(stderr, "active mappings:\n");
